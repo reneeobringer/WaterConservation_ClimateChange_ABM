@@ -3,7 +3,7 @@ This is the repository for the data and code associated with an agent-based mode
 
 Results from this analysis are currently under review. 
 
-A permanent version of this repository is available on Zenodo: .
+A permanent version of this repository is available on Zenodo: [![DOI](https://zenodo.org/badge/866216695.svg)](https://doi.org/10.5281/zenodo.15262284).
 
 The ABM was developed in NetLogo (v6.2.2) and was last run on 31 March 2025. The analysis was conducted using two separate NetLogo files, one for the observation-based model (`observationanalysis.nlogo`) and one for the future analysis under climate change (`climatechangeanalysis.nlogo`). Running the NetLogo code requires several extensions: 
 
