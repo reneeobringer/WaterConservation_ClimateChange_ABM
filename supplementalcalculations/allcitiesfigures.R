@@ -1,6 +1,6 @@
-# Figures for Water Conservatioon + Climate Change ABM Paper
+# Figures for Water Conservation + Climate Change ABM Paper
 # Renee Obringer
-# 24 September 2024
+# 2 April 2025
 
 rm(list=ls())
 options(scipen = 999)
@@ -20,7 +20,7 @@ library(lubridate)
 # NOTE: set this path to the folder on your personal machine which contains the cloned repository
 # for example: path <- '/Users/Obringer/Downloads/WaterConservation_ClimateChange_ABM'
 
-path <- '   '
+path <- '/Users/rqo5125/Library/Mobile Documents/com~apple~CloudDocs/Documents/Research/GitHub/public/WaterConservation_ClimateChange_ABM'
 
 # set directories
 maindir <- path                                                             # main directory
@@ -29,20 +29,22 @@ abmresultsdir <- paste(path, '/abmresults', sep = '')                       # di
 rdatadir <- paste(path, '/supplementalcalculations/rdatafiles/', sep = '')  # directory for storing rdata files
 
 # OPTIONAL: create an output directory
-outputdir <- paste(path, '/outputdir/', sep = '')                           # directory for any non-rdata output files (e.g., csv, pdf, etc.)
-dir.create(outputdir)
+#outputdir <- paste(path, '/outputdir/', sep = '')                           # directory for any non-rdata output files (e.g., csv, pdf, etc.)
+#dir.create(outputdir)
+outputdir <- '/Users/rqo5125/Library/Mobile Documents/com~apple~CloudDocs/Documents/Research/2024_25/papers/anthrodrought-abm/figures'
 
 ########## LOAD DATA ############
 
 
 # read in scenario results csv files
-archetypescenarios <- read.csv(paste(abmresultsdir, '/scenarioresults_observations.csv', sep =''), header = F, na.string = "")
-climatechangescenarios <- read.csv(paste(abmresultsdir, '/scenarioresults_climatechange.csv', sep =''), header = F, na.string = "")
+archetypescenarios <- read.csv(paste(abmresultsdir, '/scenarioresults_observations.csv', sep = ''), header = F, na.string = "")
+climatechangescenarios <- read.csv(paste(abmresultsdir, '/scenarioresults_climatechange.csv', sep = ''), header = F, na.string = "")
+sensitivityanalysis <- read.csv(paste(abmresultsdir, '/sensitivityanalysis_observations.csv', sep = ''), header = F, na.string = "")
 
 # read in original data
-denverobs <- read.csv(paste(datadir, '/DenverWaterBalData_Original.csv', sep =''), header = T, na.string = "")
-lasvegasobs <- read.csv(paste(datadir, '/LasVegasWaterBalData_Original.csv', sep =''), header = T, na.string = "")
-phoenixobs <- read.csv(paste(datadir, '/PhoenixWaterBalData_Original.csv', sep =''), header = T, na.string = "")
+denverobs <- read.csv(paste(datadir, '/DenverWaterBalData.csv', sep =''), header = F, na.string = "")
+lasvegasobs <- read.csv(paste(datadir, '/LasVegasWaterBalData.csv', sep =''), header = F, na.string = "")
+phoenixobs <- read.csv(paste(datadir, '/PhoenixWaterBalData.csv', sep =''), header = F, na.string = "")
 
 ########## ORGANIZE DATA ############
 
@@ -54,22 +56,30 @@ futuredates <- seq.Date(as.Date('2006-01-01'), as.Date('2099-12-31'), by = 'mont
 # OBSERVATION-BASED DATASETS
 
 # add dates to dataframes
-denverobs$X <- obsdates; lasvegasobs$X <- obsdates; phoenixobs$X <- obsdates[1:132]
+denverobs$X <- obsdates; lasvegasobs$X <- obsdates; phoenixobs$X <- obsdates[1:131]
 archetypescenarios$Date <- c.Date(NA, NA, obsdates[1:143]) 
+sensitivityanalysis$Date <- c.Date(NA, NA, NA, obsdates[1:142]) 
 
 # prepping datasets for melting
 newcolumnnames <- paste(archetypescenarios[1,], archetypescenarios[2,], names(archetypescenarios), sep = "_") 
 names(archetypescenarios)[1:1800] <- newcolumnnames[1:1800] 
 archetypescenarios <- archetypescenarios[-c(1:2),]
 
+newcolumnnames2 <- paste(sensitivityanalysis[1,], sensitivityanalysis[2,], sensitivityanalysis[3,], sep = "_") 
+names(sensitivityanalysis)[1:90] <- newcolumnnames2[1:90] 
+sensitivityanalysis <- sensitivityanalysis[-c(1:3),]
+
 # melting
 scenarios1 <- melt(archetypescenarios, id = 'Date')
+sensitivity <- melt(sensitivityanalysis, id = 'Date')
 
 # splitting the "variable" column into multiple descriptors
 scenarios1 <- separate(scenarios1, 'variable', into = c('scenario', 'city', 'model run'), sep = '_')
+sensitivity <- separate(sensitivity, 'variable', into = c('city', 'starting condition', 'repetition'), sep = '_')
 
 # convert to numeric
 scenarios1$value <- as.numeric(scenarios1$value)
+sensitivity$value <- as.numeric(sensitivity$value)
 
 # FUTURE CLIMATE-BASED DATASETS
 
@@ -128,7 +138,7 @@ scenarios3$value <- as.numeric(scenarios3$value)
 
 # SAVE DATA
 setwd(rdatadir)
-save(denverobs, lasvegasobs, phoenixobs, scenarios1, scenarios2, scenarios3, file = 'scenariodata.rdata')
+save(denverobs, lasvegasobs, phoenixobs, scenarios1, scenarios2, scenarios3, sensitivity, file = 'scenariodata.rdata')
 
 ########## FIGURES & TABLES ############
 
@@ -152,9 +162,9 @@ phoenixnrmse <- c(); denvernrmse <- c(); lasvegasnrmse <- c()
 
 # loop through each model run
 for (i in 1:100) {
-  phoenixnrmse[i] <- nrmse(phoenixbase[1:132,i+3], phoenixobs$S, norm = 'maxmin')
-  denvernrmse[i] <- nrmse(denverbase[,i+3], denverobs$S[1:143], norm = 'maxmin')
-  lasvegasnrmse[i] <- nrmse(lasvegasbase[,i+3], lasvegasobs$S[1:143], norm = 'maxmin')
+  phoenixnrmse[i] <- nrmse(phoenixbase[1:129,i+3], phoenixobs[1:129,1], norm = 'maxmin')
+  denvernrmse[i] <- nrmse(denverbase[,i+3], denverobs[1:143,1], norm = 'maxmin')
+  lasvegasnrmse[i] <- nrmse(lasvegasbase[,i+3], lasvegasobs[1:143,1], norm = 'maxmin')
 }
 
 # print values for table
@@ -166,9 +176,9 @@ mean(lasvegasnrmse); range(lasvegasnrmse)
 plotdata <- scenarios1[which(scenarios1$scenario == 'base'),-2] # extract baseline scenario data
 
 # organize city observations:
-pltdata_d <- data.frame('Date' = denverobs$X, 'city' = rep('Denver', 144), 'model run' = rep('observations', 144), 'value' = denverobs$S, check.names = F)
-pltdata_lv <- data.frame('Date' = lasvegasobs$X, 'city' = rep('Las Vegas', 144), 'model run' = rep('observations', 144), 'value' = lasvegasobs$S, check.names = F)
-pltdata_p <- data.frame('Date' = phoenixobs$X, 'city' = rep('Phoenix', 132), 'model run' = rep('observations', 132), 'value' = phoenixobs$S, check.names = F)
+pltdata_d <- data.frame('Date' = denverobs$X, 'city' = rep('Denver', 144), 'model run' = rep('observations', 144), 'value' = denverobs[,1], check.names = F)
+pltdata_lv <- data.frame('Date' = lasvegasobs$X, 'city' = rep('Las Vegas', 144), 'model run' = rep('observations', 144), 'value' = lasvegasobs[,1], check.names = F)
+pltdata_p <- data.frame('Date' = phoenixobs$X, 'city' = rep('Phoenix', 131), 'model run' = rep('observations', 131), 'value' = phoenixobs[,1], check.names = F)
 
 # get averages over 100 model runs
 averages <- plotdata %>% group_by(Date, city) %>% summarize(mean(value))
@@ -184,18 +194,34 @@ plotdata$runtype <- case_when(str_detect(plotdata$`model run`, 'aver') ~ 'averag
                               str_detect(plotdata$`model run`, 'obs') ~ 'observation', 
                               str_detect(plotdata$`model run`, 'V') ~ 'model run')
 
+reservoirlevels <- data.frame('city' = c('Denver', 'Las Vegas', 'Phoenix'), 
+                              'quartile3' = c(quantile(plotdata[which(plotdata$runtype == 'observation' & plotdata$city == 'Denver'),]$value, .75),
+                                              quantile(plotdata[which(plotdata$runtype == 'observation' & plotdata$city == 'Las Vegas'),]$value, .75),
+                                              quantile(plotdata[which(plotdata$runtype == 'observation' & plotdata$city == 'Phoenix'),]$value, .75)),
+                              'median' = c(median(plotdata[which(plotdata$runtype == 'observation' & plotdata$city == 'Denver'),]$value),
+                                           median(plotdata[which(plotdata$runtype == 'observation' & plotdata$city == 'Las Vegas'),]$value),
+                                           median(plotdata[which(plotdata$runtype == 'observation' & plotdata$city == 'Phoenix'),]$value)),
+                              'quartile1' = c(quantile(plotdata[which(plotdata$runtype == 'observation' & plotdata$city == 'Denver'),]$value, .25),
+                                              quantile(plotdata[which(plotdata$runtype == 'observation' & plotdata$city == 'Las Vegas'),]$value, .25),
+                                              quantile(plotdata[which(plotdata$runtype == 'observation' & plotdata$city == 'Phoenix'),]$value, .25)))
+
 setwd(outputdir)
 pdf('observed_baseline_allcities.pdf', width = 10.5, height = 10)
-ggplot() + geom_line(data = plotdata[which(plotdata$runtype == 'model run'),], aes(x = Date, y = value/1000000000, group = `model run`), color = '#D3D3D3') +
+ggplot() + geom_hline(data = reservoirlevels, aes(yintercept = quartile3/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = median/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile1/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_line(data = plotdata[which(plotdata$runtype == 'model run'),], aes(x = Date, y = value/1000000000, group = `model run`), color = '#D3D3D3') +
   geom_line(data = plotdata[which(plotdata$runtype == 'observation'),], aes(x = Date, y = value/1000000000, group = `model run`), color = 'red', linetype = 'dashed') +
   geom_line(data = plotdata[which(plotdata$runtype == 'average'),], aes(x = Date, y = value/1000000000, group = `model run`), color = 'black') +
   xlab('Date') + ylab(expression(paste('Storage (billions of ', m^3, ')', sep = ''))) +
-  facet_wrap(~city, nrow = 3, scales = 'free') + theme_light(base_size = 16) 
+  facet_wrap(~city, nrow = 3, scales = 'free') + theme_light(base_size = 16)
 dev.off()
 
 # FIGURE 2: Baseline + climate change scenarios across all three cities (All Scenarios - Ensemble of GCMs)
 
 plotdata <- scenarios2[which(scenarios2$scenario == 'base' & scenarios2$`model run` != 'hist'),-2] # extract baseline scenario data
+
+reservoirlevels$city[2] <- 'LasVegas'
 
 # get averages over 5 model runs for each GCM
 averages <- plotdata %>% group_by(Date, city, `model run`, model) %>% summarize(mean(value))
@@ -207,7 +233,10 @@ names(plotdata)[4] <- 'value'
 
 setwd(outputdir)
 pdf('future_baseline_cconly_allcities.pdf', width = 10.5, height = 10)
-ggplot(plotdata) + geom_line(aes(x = Date, y = value/1000000000, color = `model run`), size = 1) +
+ggplot(plotdata) + geom_hline(data = reservoirlevels, aes(yintercept = quartile3/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = median/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile1/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_line(aes(x = Date, y = value/1000000000, color = `model run`), size = 1) +
   xlab('Date') + ylab(expression(paste('Storage (billions of ', m^3, ')', sep = ''))) +
   facet_wrap(~city, nrow = 3, scales = 'free') + theme_light() + theme(legend.position="bottom", text = element_text(size = 16)) +
   scale_color_manual(name = 'Scenario', labels = c('RCP2.6', 'RCP4.5', 'RCP6.0', 'RCP8.5'), values = c('#fec44f', '#fe9929','#d95f0e','#993404'))
@@ -225,7 +254,10 @@ names(plotdata)[5] <- 'value'
 
 setwd(outputdir)
 pdf('archetypes_cconly_allcities.pdf', width = 10.5, height = 7)
-ggplot(plotdata) + geom_boxplot(aes(x = `model run`, y = value/1000000000,  fill = scenario)) +
+ggplot(plotdata) + geom_hline(data = reservoirlevels, aes(yintercept = quartile3/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = median/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile1/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_boxplot(aes(x = `model run`, y = value/1000000000,  fill = scenario)) +
   theme_light() + theme(legend.position="bottom", text = element_text(size = 16))+ xlab('Climate Change Scenario') + ylab(expression(paste('Storage (billions of ', m^3, ')', sep = ''))) +
   scale_x_discrete(labels = c('Historical','RCP2.6', 'RCP4.5', 'RCP6.0', 'RCP8.5')) +
   scale_fill_manual(values = c('black','#8da0cb'), name = 'Policy Scenario', labels = c('Baseline', 'Full Participation')) +
@@ -246,7 +278,10 @@ names(plotdata)[4] <- 'value'
 
 setwd(outputdir)
 pdf('future_baseline_adacons_allcities.pdf', width = 10.5, height = 10)
-ggplot(plotdata) + geom_line(aes(x = Date, y = value/1000000000, color = `model run`), size = 1) +
+ggplot(plotdata) + geom_hline(data = reservoirlevels, aes(yintercept = quartile3/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = median/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile1/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_line(aes(x = Date, y = value/1000000000, color = `model run`), size = 1) +
   xlab('Date') + ylab(expression(paste('Storage (billions of ', m^3, ')', sep = ''))) +
   facet_wrap(~city, nrow = 3, scales = 'free') + theme_light() + theme(legend.position="bottom", text = element_text(size = 16)) +
   scale_color_manual(name = 'Scenario', labels = c('RCP2.6', 'RCP4.5', 'RCP6.0', 'RCP8.5'), values = c('#fec44f', '#fe9929','#d95f0e','#993404'))
@@ -264,7 +299,10 @@ names(plotdata)[5] <- 'value'
 
 setwd(outputdir)
 pdf('archetypes_adacons_allcities.pdf', width = 10.5, height = 7)
-ggplot(plotdata) + geom_boxplot(aes(x = `model run`, y = value/1000000000,  fill = scenario)) +
+ggplot(plotdata) + geom_hline(data = reservoirlevels, aes(yintercept = quartile3/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = median/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile1/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_boxplot(aes(x = `model run`, y = value/1000000000,  fill = scenario)) +
   theme_light() + theme(legend.position="bottom", text = element_text(size = 16))+ xlab('Climate Change Scenario') + ylab(expression(paste('Storage (billions of ', m^3, ')', sep = ''))) +
   scale_x_discrete(labels = c('Historical','RCP2.6', 'RCP4.5', 'RCP6.0', 'RCP8.5')) +
   scale_fill_manual(values = c('black','#8da0cb'), name = 'Policy Scenario', labels = c('Baseline', 'Full Participation')) +
@@ -287,9 +325,15 @@ plotdata$scenario <- case_when(plotdata$scenario == 'base' ~ '1base', plotdata$s
                                plotdata$scenario == 'part' ~ '3part', plotdata$scenario == 'indiv' ~ '4indiv', 
                                plotdata$scenario == 'concern' ~ '5concern', plotdata$scenario == 'all-changes' ~ '6all-changes')
 
+reservoirlevels$city[2] <- 'Las Vegas'
+
 setwd(outputdir)
 pdf('archetypescenarios_allcities.pdf', width = 10.5, height = 7)
-ggplot(plotdata[which(plotdata$`model run` == 'average'),]) + geom_boxplot(aes(x = scenario, y = value/1000000000,  fill = scenario)) +
+ggplot(plotdata[which(plotdata$`model run` == 'average'),]) + 
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile3/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = median/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile1/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_boxplot(aes(x = scenario, y = value/1000000000,  fill = scenario)) +
   theme_light(base_size = 16) + xlab('Scenario') + ylab(expression(paste('Storage (billions of ', m^3, ')', sep = ''))) +
   scale_x_discrete(labels = c('Baseline','Partial Participation', 'Full Participation', 'Individualistic','Concerned','All Changes')) +
   scale_fill_manual(values = c('black','#66c2a5','#8da0cb','#e78ac3','#a6d854','#ffd92f'), guide = 'none') +
@@ -309,23 +353,38 @@ averages <- averages[,c(1,2,4,3,6,5)]
 # merge averages w/ actual model runs
 plotdata <- rbind(averages, plotdata)
 
-p1 <- ggplot(plotdata[which(plotdata$repetition != 'average' & plotdata$`model run` == 'hist' & plotdata$model == 'gfdl'),]) + geom_line(aes(x = Date, y = value/1000000000, group = model), color = '#D3D3D3') +
+reservoirlevels$city[2] <- 'LasVegas'
+
+p1 <- ggplot(plotdata[which(plotdata$repetition != 'average' & plotdata$`model run` == 'hist' & plotdata$model == 'gfdl'),]) + 
+  geom_line(aes(x = Date, y = value/1000000000, group = model), color = '#D3D3D3') +
   geom_line(data = plotdata[which(plotdata$repetition == 'average' & plotdata$`model run` == 'hist' & plotdata$model == 'gfdl'),], aes(x = Date, y = value/1000000000, group = model), color = 'black') +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile3/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = median/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile1/1000000000), linetype = 'dotted', linewidth = 0.5) +
   xlab('Date') + ylab(expression(paste('Storage (billions of ', m^3, ')', sep = ''))) +
   facet_wrap(~city, nrow = 3, scales = 'free') + theme_light(base_size = 12) + ggtitle('GFDL')
 
 p2 <- ggplot(plotdata[which(plotdata$repetition != 'average' & plotdata$`model run` == 'hist' & plotdata$model == 'ipsl'),]) + geom_line(aes(x = Date, y = value/1000000000, group = model), color = '#D3D3D3') +
   geom_line(data = plotdata[which(plotdata$repetition == 'average' & plotdata$`model run` == 'hist' & plotdata$model == 'ipsl'),], aes(x = Date, y = value/1000000000, group = model), color = 'black') +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile3/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = median/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile1/1000000000), linetype = 'dotted', linewidth = 0.5) +
   xlab('Date') + ylab('') +
   facet_wrap(~city, nrow = 3, scales = 'free') + theme_light(base_size = 12) + ggtitle('IPSL')
 
 p3 <- ggplot(plotdata[which(plotdata$repetition != 'average' & plotdata$`model run` == 'hist' & plotdata$model == 'hadgem'),]) + geom_line(aes(x = Date, y = value/1000000000, group = model), color = '#D3D3D3') +
   geom_line(data = plotdata[which(plotdata$repetition == 'average' & plotdata$`model run` == 'hist' & plotdata$model == 'hadgem'),], aes(x = Date, y = value/1000000000, group = model), color = 'black') +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile3/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = median/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile1/1000000000), linetype = 'dotted', linewidth = 0.5) +
   xlab('Date') + ylab('') +
   facet_wrap(~city, nrow = 3, scales = 'free') + theme_light(base_size = 12) + ggtitle('HadGEM')
 
 p4 <- ggplot(plotdata[which(plotdata$repetition != 'average' & plotdata$`model run` == 'hist' & plotdata$model == 'miroc'),]) + geom_line(aes(x = Date, y = value/1000000000, group = model), color = '#D3D3D3') +
   geom_line(data = plotdata[which(plotdata$repetition == 'average' & plotdata$`model run` == 'hist' & plotdata$model == 'miroc'),], aes(x = Date, y = value/1000000000, group = model), color = 'black') +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile3/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = median/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile1/1000000000), linetype = 'dotted', linewidth = 0.5) +
   xlab('Date') + ylab('') +
   facet_wrap(~city, nrow = 3, scales = 'free') + theme_light(base_size = 12) + ggtitle('MIROC')
 
@@ -338,21 +397,33 @@ dev.off()
 
 p1 <- ggplot(plotdata[which(plotdata$repetition != 'average' & plotdata$`model run` == 'rcp2p6' & plotdata$model == 'gfdl'),]) + geom_line(aes(x = Date, y = value/1000000000, group = model), color = '#ffffe5') +
   geom_line(data = plotdata[which(plotdata$repetition == 'average' & plotdata$`model run`  == 'rcp2p6' & plotdata$model == 'gfdl'),], aes(x = Date, y = value/1000000000, group = model), color = '#fe9929') +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile3/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = median/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile1/1000000000), linetype = 'dotted', linewidth = 0.5) +
   xlab('Date') + ylab(expression(paste('Storage (billions of ', m^3, ')', sep = ''))) +
   facet_wrap(~city, nrow = 3, scales = 'free') + theme_light(base_size = 12) + ggtitle('GFDL')
 
 p2 <- ggplot(plotdata[which(plotdata$repetition != 'average' & plotdata$`model run`  == 'rcp2p6' & plotdata$model == 'ipsl'),]) + geom_line(aes(x = Date, y = value/1000000000, group = model), color = '#ffffe5') +
   geom_line(data = plotdata[which(plotdata$repetition == 'average' & plotdata$`model run`  == 'rcp2p6' & plotdata$model == 'ipsl'),], aes(x = Date, y = value/1000000000, group = model), color = '#fe9929') +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile3/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = median/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile1/1000000000), linetype = 'dotted', linewidth = 0.5) +
   xlab('Date') + ylab('') +
   facet_wrap(~city, nrow = 3, scales = 'free') + theme_light(base_size = 12) + ggtitle('IPSL')
 
 p3 <- ggplot(plotdata[which(plotdata$repetition != 'average' & plotdata$`model run`  == 'rcp2p6' & plotdata$model == 'hadgem'),]) + geom_line(aes(x = Date, y = value/1000000000, group = model), color = '#ffffe5') +
   geom_line(data = plotdata[which(plotdata$repetition == 'average' & plotdata$`model run`  == 'rcp2p6' & plotdata$model == 'hadgem'),], aes(x = Date, y = value/1000000000, group = model), color = '#fe9929') +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile3/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = median/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile1/1000000000), linetype = 'dotted', linewidth = 0.5) +
   xlab('Date') + ylab('') +
   facet_wrap(~city, nrow = 3, scales = 'free') + theme_light(base_size = 12) + ggtitle('HadGEM')
 
 p4 <- ggplot(plotdata[which(plotdata$repetition != 'average' & plotdata$`model run`  == 'rcp2p6' & plotdata$model == 'miroc'),]) + geom_line(aes(x = Date, y = value/1000000000, group = model), color = '#ffffe5') +
   geom_line(data = plotdata[which(plotdata$repetition == 'average' & plotdata$`model run`  == 'rcp2p6' & plotdata$model == 'miroc'),], aes(x = Date, y = value/1000000000, group = model), color = '#fe9929') +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile3/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = median/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile1/1000000000), linetype = 'dotted', linewidth = 0.5) +
   xlab('Date') + ylab('') +
   facet_wrap(~city, nrow = 3, scales = 'free') + theme_light(base_size = 12) + ggtitle('MIROC')
 
@@ -365,21 +436,33 @@ dev.off()
 
 p1 <- ggplot(plotdata[which(plotdata$repetition != 'average' & plotdata$`model run` == 'rcp4p5' & plotdata$model == 'gfdl'),]) + geom_line(aes(x = Date, y = value/1000000000, group = model), color = '#fff7bc') +
   geom_line(data = plotdata[which(plotdata$repetition == 'average' & plotdata$`model run`  == 'rcp4p5' & plotdata$model == 'gfdl'),], aes(x = Date, y = value/1000000000, group = model), color = '#ec7014') +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile3/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = median/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile1/1000000000), linetype = 'dotted', linewidth = 0.5) +
   xlab('Date') + ylab(expression(paste('Storage (billions of ', m^3, ')', sep = ''))) +
   facet_wrap(~city, nrow = 3, scales = 'free') + theme_light(base_size = 12) + ggtitle('GFDL')
 
 p2 <- ggplot(plotdata[which(plotdata$repetition != 'average' & plotdata$`model run`  == 'rcp4p5' & plotdata$model == 'ipsl'),]) + geom_line(aes(x = Date, y = value/1000000000, group = model), color = '#fff7bc') +
   geom_line(data = plotdata[which(plotdata$repetition == 'average' & plotdata$`model run`  == 'rcp4p5' & plotdata$model == 'ipsl'),], aes(x = Date, y = value/1000000000, group = model), color = '#ec7014') +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile3/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = median/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile1/1000000000), linetype = 'dotted', linewidth = 0.5) +
   xlab('Date') + ylab('') +
   facet_wrap(~city, nrow = 3, scales = 'free') + theme_light(base_size = 12) + ggtitle('IPSL')
 
 p3 <- ggplot(plotdata[which(plotdata$repetition != 'average' & plotdata$`model run`  == 'rcp4p5' & plotdata$model == 'hadgem'),]) + geom_line(aes(x = Date, y = value/1000000000, group = model), color = '#fff7bc') +
   geom_line(data = plotdata[which(plotdata$repetition == 'average' & plotdata$`model run`  == 'rcp4p5' & plotdata$model == 'hadgem'),], aes(x = Date, y = value/1000000000, group = model), color = '#ec7014') +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile3/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = median/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile1/1000000000), linetype = 'dotted', linewidth = 0.5) +
   xlab('Date') + ylab('') +
   facet_wrap(~city, nrow = 3, scales = 'free') + theme_light(base_size = 12) + ggtitle('HadGEM')
 
 p4 <- ggplot(plotdata[which(plotdata$repetition != 'average' & plotdata$`model run`  == 'rcp4p5' & plotdata$model == 'miroc'),]) + geom_line(aes(x = Date, y = value/1000000000, group = model), color = '#fff7bc') +
   geom_line(data = plotdata[which(plotdata$repetition == 'average' & plotdata$`model run`  == 'rcp4p5' & plotdata$model == 'miroc'),], aes(x = Date, y = value/1000000000, group = model), color = '#ec7014') +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile3/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = median/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile1/1000000000), linetype = 'dotted', linewidth = 0.5) +
   xlab('Date') + ylab('') +
   facet_wrap(~city, nrow = 3, scales = 'free') + theme_light(base_size = 12) + ggtitle('MIROC')
 
@@ -392,21 +475,33 @@ dev.off()
 
 p1 <- ggplot(plotdata[which(plotdata$repetition != 'average' & plotdata$`model run` == 'rcp6p0' & plotdata$model == 'gfdl'),]) + geom_line(aes(x = Date, y = value/1000000000, group = model), color = '#fee391') +
   geom_line(data = plotdata[which(plotdata$repetition == 'average' & plotdata$`model run`  == 'rcp6p0' & plotdata$model == 'gfdl'),], aes(x = Date, y = value/1000000000, group = model), color = '#cc4c02') +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile3/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = median/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile1/1000000000), linetype = 'dotted', linewidth = 0.5) +
   xlab('Date') + ylab(expression(paste('Storage (billions of ', m^3, ')', sep = ''))) +
   facet_wrap(~city, nrow = 3, scales = 'free') + theme_light(base_size = 12) + ggtitle('GFDL')
 
 p2 <- ggplot(plotdata[which(plotdata$repetition != 'average' & plotdata$`model run`  == 'rcp6p0' & plotdata$model == 'ipsl'),]) + geom_line(aes(x = Date, y = value/1000000000, group = model), color = '#fee391') +
   geom_line(data = plotdata[which(plotdata$repetition == 'average' & plotdata$`model run`  == 'rcp6p0' & plotdata$model == 'ipsl'),], aes(x = Date, y = value/1000000000, group = model), color = '#cc4c02') +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile3/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = median/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile1/1000000000), linetype = 'dotted', linewidth = 0.5) +
   xlab('Date') + ylab('') +
   facet_wrap(~city, nrow = 3, scales = 'free') + theme_light(base_size = 12) + ggtitle('IPSL')
 
 p3 <- ggplot(plotdata[which(plotdata$repetition != 'average' & plotdata$`model run`  == 'rcp6p0' & plotdata$model == 'hadgem'),]) + geom_line(aes(x = Date, y = value/1000000000, group = model), color = '#fee391') +
   geom_line(data = plotdata[which(plotdata$repetition == 'average' & plotdata$`model run`  == 'rcp6p0' & plotdata$model == 'hadgem'),], aes(x = Date, y = value/1000000000, group = model), color = '#cc4c02') +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile3/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = median/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile1/1000000000), linetype = 'dotted', linewidth = 0.5) +
   xlab('Date') + ylab('') +
   facet_wrap(~city, nrow = 3, scales = 'free') + theme_light(base_size = 12) + ggtitle('HadGEM')
 
 p4 <- ggplot(plotdata[which(plotdata$repetition != 'average' & plotdata$`model run`  == 'rcp6p0' & plotdata$model == 'miroc'),]) + geom_line(aes(x = Date, y = value/1000000000, group = model), color = '#fee391') +
   geom_line(data = plotdata[which(plotdata$repetition == 'average' & plotdata$`model run`  == 'rcp6p0' & plotdata$model == 'miroc'),], aes(x = Date, y = value/1000000000, group = model), color = '#cc4c02') +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile3/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = median/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile1/1000000000), linetype = 'dotted', linewidth = 0.5) +
   xlab('Date') + ylab('') +
   facet_wrap(~city, nrow = 3, scales = 'free') + theme_light(base_size = 12) + ggtitle('MIROC')
 
@@ -419,21 +514,33 @@ dev.off()
 
 p1 <- ggplot(plotdata[which(plotdata$repetition != 'average' & plotdata$`model run` == 'rcp8p5' & plotdata$model == 'gfdl'),]) + geom_line(aes(x = Date, y = value/1000000000, group = model), color = '#fec44f') +
   geom_line(data = plotdata[which(plotdata$repetition == 'average' & plotdata$`model run`  == 'rcp8p5' & plotdata$model == 'gfdl'),], aes(x = Date, y = value/1000000000, group = model), color = '#8c2d04') +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile3/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = median/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile1/1000000000), linetype = 'dotted', linewidth = 0.5) +
   xlab('Date') + ylab(expression(paste('Storage (billions of ', m^3, ')', sep = ''))) +
   facet_wrap(~city, nrow = 3, scales = 'free') + theme_light(base_size = 12) + ggtitle('GFDL')
 
 p2 <- ggplot(plotdata[which(plotdata$repetition != 'average' & plotdata$`model run`  == 'rcp8p5' & plotdata$model == 'ipsl'),]) + geom_line(aes(x = Date, y = value/1000000000, group = model), color = '#fec44f') +
   geom_line(data = plotdata[which(plotdata$repetition == 'average' & plotdata$`model run`  == 'rcp8p5' & plotdata$model == 'ipsl'),], aes(x = Date, y = value/1000000000, group = model), color = '#8c2d04') +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile3/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = median/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile1/1000000000), linetype = 'dotted', linewidth = 0.5) +
   xlab('Date') + ylab('') +
   facet_wrap(~city, nrow = 3, scales = 'free') + theme_light(base_size = 12) + ggtitle('IPSL')
 
 p3 <- ggplot(plotdata[which(plotdata$repetition != 'average' & plotdata$`model run`  == 'rcp8p5' & plotdata$model == 'hadgem'),]) + geom_line(aes(x = Date, y = value/1000000000, group = model), color = '#fec44f') +
   geom_line(data = plotdata[which(plotdata$repetition == 'average' & plotdata$`model run`  == 'rcp8p5' & plotdata$model == 'hadgem'),], aes(x = Date, y = value/1000000000, group = model), color = '#8c2d04') +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile3/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = median/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile1/1000000000), linetype = 'dotted', linewidth = 0.5) +
   xlab('Date') + ylab('') +
   facet_wrap(~city, nrow = 3, scales = 'free') + theme_light(base_size = 12) + ggtitle('HadGEM')
 
 p4 <- ggplot(plotdata[which(plotdata$repetition != 'average' & plotdata$`model run`  == 'rcp8p5' & plotdata$model == 'miroc'),]) + geom_line(aes(x = Date, y = value/1000000000, group = model), color = '#fec44f') +
   geom_line(data = plotdata[which(plotdata$repetition == 'average' & plotdata$`model run`  == 'rcp8p5' & plotdata$model == 'miroc'),], aes(x = Date, y = value/1000000000, group = model), color = '#8c2d04') +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile3/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = median/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile1/1000000000), linetype = 'dotted', linewidth = 0.5) +
   xlab('Date') + ylab('') +
   facet_wrap(~city, nrow = 3, scales = 'free') + theme_light(base_size = 12) + ggtitle('MIROC')
 
@@ -444,17 +551,33 @@ dev.off()
 
 # FIGURE S7: Archetypes + climate change scenarios across all cities (Line Plots)
 
-p1 <- ggplot(plotdata[which(plotdata$city == 'Denver'),]) + geom_line(aes(x = Date, y = value/1000000000, color = scenario)) +
+# get averages over 5 model runs for each GCM
+plotdata <- scenarios2 %>% group_by(Date, city, `model run`, scenario) %>% summarize(mean(value))
+names(plotdata)[5] <- 'value'
+
+p1 <- ggplot(plotdata[which(plotdata$city == 'Denver'),]) + 
+  geom_hline(data = reservoirlevels[which(reservoirlevels$city == 'Denver'),], aes(yintercept = quartile3/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels[which(reservoirlevels$city == 'Denver'),], aes(yintercept = median/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels[which(reservoirlevels$city == 'Denver'),], aes(yintercept = quartile1/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_line(aes(x = Date, y = value/1000000000, color = scenario)) +
   theme_light() + theme(legend.position="bottom", text = element_text(size = 16))+ xlab('') + ylab(expression(paste('Storage (billions of ', m^3, ')', sep = ''))) +
   scale_color_manual(values = c('black','#8da0cb'), name = '', labels = c('', '')) +
-  facet_wrap(~`model run`, nrow = 5, scales = 'free') +ggtitle('Denver')
+  facet_wrap(~`model run`, nrow = 5, scales = 'free') + ggtitle('Denver')
 
-p2 <- ggplot(plotdata[which(plotdata$city == 'LasVegas'),]) + geom_line(aes(x = Date, y = value/1000000000, color = scenario)) +
+p2 <- ggplot(plotdata[which(plotdata$city == 'LasVegas'),]) + 
+  geom_hline(data = reservoirlevels[which(reservoirlevels$city == 'LasVegas'),], aes(yintercept = quartile3/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels[which(reservoirlevels$city == 'LasVegas'),], aes(yintercept = median/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels[which(reservoirlevels$city == 'LasVegas'),], aes(yintercept = quartile1/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_line(aes(x = Date, y = value/1000000000, color = scenario)) +
   theme_light() + theme(legend.position="bottom", text = element_text(size = 16))+ xlab('Date') + ylab('') +
   scale_color_manual(values = c('black','#8da0cb'), name = 'Scenario', labels = c('Baseline', 'Participation')) +
   facet_wrap(~`model run`, nrow = 5, scales = 'free') + ggtitle('Las Vegas')
 
-p3 <- ggplot(plotdata[which(plotdata$city == 'Phoenix'),]) + geom_line(aes(x = Date, y = value/1000000000, color = scenario)) +
+p3 <- ggplot(plotdata[which(plotdata$city == 'Phoenix'),]) + 
+  geom_hline(data = reservoirlevels[which(reservoirlevels$city == 'Phoenix'),], aes(yintercept = quartile3/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels[which(reservoirlevels$city == 'Phoenix'),], aes(yintercept = median/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels[which(reservoirlevels$city == 'Phoenix'),], aes(yintercept = quartile1/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_line(aes(x = Date, y = value/1000000000, color = scenario)) +
   theme_light() + theme(legend.position="bottom", text = element_text(size = 16))+ xlab('') + ylab('') +
   scale_color_manual(values = c('black','#8da0cb'), name = '', labels = c('', '')) +
   facet_wrap(~`model run`, nrow = 5, scales = 'free') + ggtitle('Phoenix')
@@ -479,21 +602,33 @@ plotdata <- rbind(averages, plotdata)
 
 p1 <- ggplot(plotdata[which(plotdata$repetition != 'average' & plotdata$`model run` == 'hist' & plotdata$model == 'gfdl'),]) + geom_line(aes(x = Date, y = value/1000000000, group = model), color = '#D3D3D3') +
   geom_line(data = plotdata[which(plotdata$repetition == 'average' & plotdata$`model run` == 'hist' & plotdata$model == 'gfdl'),], aes(x = Date, y = value/1000000000, group = model), color = 'black') +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile3/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = median/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile1/1000000000), linetype = 'dotted', linewidth = 0.5) +
   xlab('Date') + ylab(expression(paste('Storage (billions of ', m^3, ')', sep = ''))) +
   facet_wrap(~city, nrow = 3, scales = 'free') + theme_light(base_size = 12) + ggtitle('GFDL')
 
 p2 <- ggplot(plotdata[which(plotdata$repetition != 'average' & plotdata$`model run` == 'hist' & plotdata$model == 'ipsl'),]) + geom_line(aes(x = Date, y = value/1000000000, group = model), color = '#D3D3D3') +
   geom_line(data = plotdata[which(plotdata$repetition == 'average' & plotdata$`model run` == 'hist' & plotdata$model == 'ipsl'),], aes(x = Date, y = value/1000000000, group = model), color = 'black') +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile3/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = median/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile1/1000000000), linetype = 'dotted', linewidth = 0.5) +
   xlab('Date') + ylab('') +
   facet_wrap(~city, nrow = 3, scales = 'free') + theme_light(base_size = 12) + ggtitle('IPSL')
 
 p3 <- ggplot(plotdata[which(plotdata$repetition != 'average' & plotdata$`model run` == 'hist' & plotdata$model == 'hadgem'),]) + geom_line(aes(x = Date, y = value/1000000000, group = model), color = '#D3D3D3') +
   geom_line(data = plotdata[which(plotdata$repetition == 'average' & plotdata$`model run` == 'hist' & plotdata$model == 'hadgem'),], aes(x = Date, y = value/1000000000, group = model), color = 'black') +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile3/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = median/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile1/1000000000), linetype = 'dotted', linewidth = 0.5) +
   xlab('Date') + ylab('') +
   facet_wrap(~city, nrow = 3, scales = 'free') + theme_light(base_size = 12) + ggtitle('HadGEM')
 
 p4 <- ggplot(plotdata[which(plotdata$repetition != 'average' & plotdata$`model run` == 'hist' & plotdata$model == 'miroc'),]) + geom_line(aes(x = Date, y = value/1000000000, group = model), color = '#D3D3D3') +
   geom_line(data = plotdata[which(plotdata$repetition == 'average' & plotdata$`model run` == 'hist' & plotdata$model == 'miroc'),], aes(x = Date, y = value/1000000000, group = model), color = 'black') +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile3/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = median/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile1/1000000000), linetype = 'dotted', linewidth = 0.5) +
   xlab('Date') + ylab('') +
   facet_wrap(~city, nrow = 3, scales = 'free') + theme_light(base_size = 12) + ggtitle('MIROC')
 
@@ -506,21 +641,33 @@ dev.off()
 
 p1 <- ggplot(plotdata[which(plotdata$repetition != 'average' & plotdata$`model run` == 'rcp2p6' & plotdata$model == 'gfdl'),]) + geom_line(aes(x = Date, y = value/1000000000, group = model), color = '#ffffe5') +
   geom_line(data = plotdata[which(plotdata$repetition == 'average' & plotdata$`model run`  == 'rcp2p6' & plotdata$model == 'gfdl'),], aes(x = Date, y = value/1000000000, group = model), color = '#fe9929') +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile3/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = median/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile1/1000000000), linetype = 'dotted', linewidth = 0.5) +
   xlab('Date') + ylab(expression(paste('Storage (billions of ', m^3, ')', sep = ''))) +
   facet_wrap(~city, nrow = 3, scales = 'free') + theme_light(base_size = 12) + ggtitle('GFDL')
 
 p2 <- ggplot(plotdata[which(plotdata$repetition != 'average' & plotdata$`model run`  == 'rcp2p6' & plotdata$model == 'ipsl'),]) + geom_line(aes(x = Date, y = value/1000000000, group = model), color = '#ffffe5') +
   geom_line(data = plotdata[which(plotdata$repetition == 'average' & plotdata$`model run`  == 'rcp2p6' & plotdata$model == 'ipsl'),], aes(x = Date, y = value/1000000000, group = model), color = '#fe9929') +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile3/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = median/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile1/1000000000), linetype = 'dotted', linewidth = 0.5) +
   xlab('Date') + ylab('') +
   facet_wrap(~city, nrow = 3, scales = 'free') + theme_light(base_size = 12) + ggtitle('IPSL')
 
 p3 <- ggplot(plotdata[which(plotdata$repetition != 'average' & plotdata$`model run`  == 'rcp2p6' & plotdata$model == 'hadgem'),]) + geom_line(aes(x = Date, y = value/1000000000, group = model), color = '#ffffe5') +
   geom_line(data = plotdata[which(plotdata$repetition == 'average' & plotdata$`model run`  == 'rcp2p6' & plotdata$model == 'hadgem'),], aes(x = Date, y = value/1000000000, group = model), color = '#fe9929') +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile3/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = median/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile1/1000000000), linetype = 'dotted', linewidth = 0.5) +
   xlab('Date') + ylab('') +
   facet_wrap(~city, nrow = 3, scales = 'free') + theme_light(base_size = 12) + ggtitle('HadGEM')
 
 p4 <- ggplot(plotdata[which(plotdata$repetition != 'average' & plotdata$`model run`  == 'rcp2p6' & plotdata$model == 'miroc'),]) + geom_line(aes(x = Date, y = value/1000000000, group = model), color = '#ffffe5') +
   geom_line(data = plotdata[which(plotdata$repetition == 'average' & plotdata$`model run`  == 'rcp2p6' & plotdata$model == 'miroc'),], aes(x = Date, y = value/1000000000, group = model), color = '#fe9929') +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile3/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = median/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile1/1000000000), linetype = 'dotted', linewidth = 0.5) +
   xlab('Date') + ylab('') +
   facet_wrap(~city, nrow = 3, scales = 'free') + theme_light(base_size = 12) + ggtitle('MIROC')
 
@@ -533,21 +680,33 @@ dev.off()
 
 p1 <- ggplot(plotdata[which(plotdata$repetition != 'average' & plotdata$`model run` == 'rcp4p5' & plotdata$model == 'gfdl'),]) + geom_line(aes(x = Date, y = value/1000000000, group = model), color = '#fff7bc') +
   geom_line(data = plotdata[which(plotdata$repetition == 'average' & plotdata$`model run`  == 'rcp4p5' & plotdata$model == 'gfdl'),], aes(x = Date, y = value/1000000000, group = model), color = '#ec7014') +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile3/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = median/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile1/1000000000), linetype = 'dotted', linewidth = 0.5) +
   xlab('Date') + ylab(expression(paste('Storage (billions of ', m^3, ')', sep = ''))) +
   facet_wrap(~city, nrow = 3, scales = 'free') + theme_light(base_size = 12) + ggtitle('GFDL')
 
 p2 <- ggplot(plotdata[which(plotdata$repetition != 'average' & plotdata$`model run`  == 'rcp4p5' & plotdata$model == 'ipsl'),]) + geom_line(aes(x = Date, y = value/1000000000, group = model), color = '#fff7bc') +
   geom_line(data = plotdata[which(plotdata$repetition == 'average' & plotdata$`model run`  == 'rcp4p5' & plotdata$model == 'ipsl'),], aes(x = Date, y = value/1000000000, group = model), color = '#ec7014') +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile3/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = median/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile1/1000000000), linetype = 'dotted', linewidth = 0.5) +
   xlab('Date') + ylab('') +
   facet_wrap(~city, nrow = 3, scales = 'free') + theme_light(base_size = 12) + ggtitle('IPSL')
 
 p3 <- ggplot(plotdata[which(plotdata$repetition != 'average' & plotdata$`model run`  == 'rcp4p5' & plotdata$model == 'hadgem'),]) + geom_line(aes(x = Date, y = value/1000000000, group = model), color = '#fff7bc') +
   geom_line(data = plotdata[which(plotdata$repetition == 'average' & plotdata$`model run`  == 'rcp4p5' & plotdata$model == 'hadgem'),], aes(x = Date, y = value/1000000000, group = model), color = '#ec7014') +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile3/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = median/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile1/1000000000), linetype = 'dotted', linewidth = 0.5) +
   xlab('Date') + ylab('') +
   facet_wrap(~city, nrow = 3, scales = 'free') + theme_light(base_size = 12) + ggtitle('HadGEM')
 
 p4 <- ggplot(plotdata[which(plotdata$repetition != 'average' & plotdata$`model run`  == 'rcp4p5' & plotdata$model == 'miroc'),]) + geom_line(aes(x = Date, y = value/1000000000, group = model), color = '#fff7bc') +
   geom_line(data = plotdata[which(plotdata$repetition == 'average' & plotdata$`model run`  == 'rcp4p5' & plotdata$model == 'miroc'),], aes(x = Date, y = value/1000000000, group = model), color = '#ec7014') +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile3/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = median/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile1/1000000000), linetype = 'dotted', linewidth = 0.5) +
   xlab('Date') + ylab('') +
   facet_wrap(~city, nrow = 3, scales = 'free') + theme_light(base_size = 12) + ggtitle('MIROC')
 
@@ -560,21 +719,33 @@ dev.off()
 
 p1 <- ggplot(plotdata[which(plotdata$repetition != 'average' & plotdata$`model run` == 'rcp6p0' & plotdata$model == 'gfdl'),]) + geom_line(aes(x = Date, y = value/1000000000, group = model), color = '#fee391') +
   geom_line(data = plotdata[which(plotdata$repetition == 'average' & plotdata$`model run`  == 'rcp6p0' & plotdata$model == 'gfdl'),], aes(x = Date, y = value/1000000000, group = model), color = '#cc4c02') +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile3/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = median/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile1/1000000000), linetype = 'dotted', linewidth = 0.5) +
   xlab('Date') + ylab(expression(paste('Storage (billions of ', m^3, ')', sep = ''))) +
   facet_wrap(~city, nrow = 3, scales = 'free') + theme_light(base_size = 12) + ggtitle('GFDL')
 
 p2 <- ggplot(plotdata[which(plotdata$repetition != 'average' & plotdata$`model run`  == 'rcp6p0' & plotdata$model == 'ipsl'),]) + geom_line(aes(x = Date, y = value/1000000000, group = model), color = '#fee391') +
   geom_line(data = plotdata[which(plotdata$repetition == 'average' & plotdata$`model run`  == 'rcp6p0' & plotdata$model == 'ipsl'),], aes(x = Date, y = value/1000000000, group = model), color = '#cc4c02') +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile3/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = median/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile1/1000000000), linetype = 'dotted', linewidth = 0.5) +
   xlab('Date') + ylab('') +
   facet_wrap(~city, nrow = 3, scales = 'free') + theme_light(base_size = 12) + ggtitle('IPSL')
 
 p3 <- ggplot(plotdata[which(plotdata$repetition != 'average' & plotdata$`model run`  == 'rcp6p0' & plotdata$model == 'hadgem'),]) + geom_line(aes(x = Date, y = value/1000000000, group = model), color = '#fee391') +
   geom_line(data = plotdata[which(plotdata$repetition == 'average' & plotdata$`model run`  == 'rcp6p0' & plotdata$model == 'hadgem'),], aes(x = Date, y = value/1000000000, group = model), color = '#cc4c02') +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile3/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = median/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile1/1000000000), linetype = 'dotted', linewidth = 0.5) +
   xlab('Date') + ylab('') +
   facet_wrap(~city, nrow = 3, scales = 'free') + theme_light(base_size = 12) + ggtitle('HadGEM')
 
 p4 <- ggplot(plotdata[which(plotdata$repetition != 'average' & plotdata$`model run`  == 'rcp6p0' & plotdata$model == 'miroc'),]) + geom_line(aes(x = Date, y = value/1000000000, group = model), color = '#fee391') +
   geom_line(data = plotdata[which(plotdata$repetition == 'average' & plotdata$`model run`  == 'rcp6p0' & plotdata$model == 'miroc'),], aes(x = Date, y = value/1000000000, group = model), color = '#cc4c02') +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile3/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = median/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile1/1000000000), linetype = 'dotted', linewidth = 0.5) +
   xlab('Date') + ylab('') +
   facet_wrap(~city, nrow = 3, scales = 'free') + theme_light(base_size = 12) + ggtitle('MIROC')
 
@@ -583,25 +754,37 @@ pdf('baselines_adacons_rcp60_allgcms.pdf', width = 11, height = 5)
 plot_grid(p1, p2, p3, p4, nrow = 1)
 dev.off()
 
-# FIGURE S12: Baseline + adaptive consutmpion + climate change scenarios across all three cities (RCP8.5 - ALL GCMS)
+# FIGURE S12: Baseline + adaptive consumption + climate change scenarios across all three cities (RCP8.5 - ALL GCMS)
 
 p1 <- ggplot(plotdata[which(plotdata$repetition != 'average' & plotdata$`model run` == 'rcp8p5' & plotdata$model == 'gfdl'),]) + geom_line(aes(x = Date, y = value/1000000000, group = model), color = '#fec44f') +
   geom_line(data = plotdata[which(plotdata$repetition == 'average' & plotdata$`model run`  == 'rcp8p5' & plotdata$model == 'gfdl'),], aes(x = Date, y = value/1000000000, group = model), color = '#8c2d04') +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile3/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = median/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile1/1000000000), linetype = 'dotted', linewidth = 0.5) +
   xlab('Date') + ylab(expression(paste('Storage (billions of ', m^3, ')', sep = ''))) +
   facet_wrap(~city, nrow = 3, scales = 'free') + theme_light(base_size = 12) + ggtitle('GFDL')
 
 p2 <- ggplot(plotdata[which(plotdata$repetition != 'average' & plotdata$`model run`  == 'rcp8p5' & plotdata$model == 'ipsl'),]) + geom_line(aes(x = Date, y = value/1000000000, group = model), color = '#fec44f') +
   geom_line(data = plotdata[which(plotdata$repetition == 'average' & plotdata$`model run`  == 'rcp8p5' & plotdata$model == 'ipsl'),], aes(x = Date, y = value/1000000000, group = model), color = '#8c2d04') +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile3/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = median/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile1/1000000000), linetype = 'dotted', linewidth = 0.5) +
   xlab('Date') + ylab('') +
   facet_wrap(~city, nrow = 3, scales = 'free') + theme_light(base_size = 12) + ggtitle('IPSL')
 
 p3 <- ggplot(plotdata[which(plotdata$repetition != 'average' & plotdata$`model run`  == 'rcp8p5' & plotdata$model == 'hadgem'),]) + geom_line(aes(x = Date, y = value/1000000000, group = model), color = '#fec44f') +
   geom_line(data = plotdata[which(plotdata$repetition == 'average' & plotdata$`model run`  == 'rcp8p5' & plotdata$model == 'hadgem'),], aes(x = Date, y = value/1000000000, group = model), color = '#8c2d04') +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile3/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = median/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile1/1000000000), linetype = 'dotted', linewidth = 0.5) +
   xlab('Date') + ylab('') +
   facet_wrap(~city, nrow = 3, scales = 'free') + theme_light(base_size = 12) + ggtitle('HadGEM')
 
 p4 <- ggplot(plotdata[which(plotdata$repetition != 'average' & plotdata$`model run`  == 'rcp8p5' & plotdata$model == 'miroc'),]) + geom_line(aes(x = Date, y = value/1000000000, group = model), color = '#fec44f') +
   geom_line(data = plotdata[which(plotdata$repetition == 'average' & plotdata$`model run`  == 'rcp8p5' & plotdata$model == 'miroc'),], aes(x = Date, y = value/1000000000, group = model), color = '#8c2d04') +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile3/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = median/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile1/1000000000), linetype = 'dotted', linewidth = 0.5) +
   xlab('Date') + ylab('') +
   facet_wrap(~city, nrow = 3, scales = 'free') + theme_light(base_size = 12) + ggtitle('MIROC')
 
@@ -612,17 +795,33 @@ dev.off()
 
 # FIGURE S13: Archetypes + adaptive water consumption + climate change scenarios across all cities (Line Plots)
 
-p1 <- ggplot(plotdata[which(plotdata$city == 'Denver'),]) + geom_line(aes(x = Date, y = value/1000000000, color = scenario)) +
+# get averages over 5 model runs + GCMs
+plotdata <- scenarios3 %>% group_by(Date, city, `model run`, scenario) %>% summarize(mean(value))
+names(plotdata)[5] <- 'value'
+
+p1 <- ggplot(plotdata[which(plotdata$city == 'Denver'),]) + 
+  geom_hline(data = reservoirlevels[which(reservoirlevels$city == 'Denver'),], aes(yintercept = quartile3/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels[which(reservoirlevels$city == 'Denver'),], aes(yintercept = median/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels[which(reservoirlevels$city == 'Denver'),], aes(yintercept = quartile1/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_line(aes(x = Date, y = value/1000000000, color = scenario)) +
   theme_light() + theme(legend.position="bottom", text = element_text(size = 16))+ xlab('') + ylab(expression(paste('Storage (billions of ', m^3, ')', sep = ''))) +
   scale_color_manual(values = c('black','#8da0cb'), name = '', labels = c('', '')) +
-  facet_wrap(~`model run`, nrow = 5, scales = 'free') +ggtitle('Denver')
+  facet_wrap(~`model run`, nrow = 5, scales = 'free') + ggtitle('Denver')
 
-p2 <- ggplot(plotdata[which(plotdata$city == 'LasVegas'),]) + geom_line(aes(x = Date, y = value/1000000000, color = scenario)) +
+p2 <- ggplot(plotdata[which(plotdata$city == 'LasVegas'),]) + 
+  geom_hline(data = reservoirlevels[which(reservoirlevels$city == 'LasVegas'),], aes(yintercept = quartile3/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels[which(reservoirlevels$city == 'LasVegas'),], aes(yintercept = median/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels[which(reservoirlevels$city == 'LasVegas'),], aes(yintercept = quartile1/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_line(aes(x = Date, y = value/1000000000, color = scenario)) +
   theme_light() + theme(legend.position="bottom", text = element_text(size = 16))+ xlab('Date') + ylab('') +
   scale_color_manual(values = c('black','#8da0cb'), name = 'Scenario', labels = c('Baseline', 'Participation')) +
   facet_wrap(~`model run`, nrow = 5, scales = 'free') + ggtitle('Las Vegas')
 
-p3 <- ggplot(plotdata[which(plotdata$city == 'Phoenix'),]) + geom_line(aes(x = Date, y = value/1000000000, color = scenario)) +
+p3 <- ggplot(plotdata[which(plotdata$city == 'Phoenix'),]) + 
+  geom_hline(data = reservoirlevels[which(reservoirlevels$city == 'Phoenix'),], aes(yintercept = quartile3/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels[which(reservoirlevels$city == 'Phoenix'),], aes(yintercept = median/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels[which(reservoirlevels$city == 'Phoenix'),], aes(yintercept = quartile1/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_line(aes(x = Date, y = value/1000000000, color = scenario)) +
   theme_light() + theme(legend.position="bottom", text = element_text(size = 16))+ xlab('') + ylab('') +
   scale_color_manual(values = c('black','#8da0cb'), name = '', labels = c('', '')) +
   facet_wrap(~`model run`, nrow = 5, scales = 'free') + ggtitle('Phoenix')
@@ -630,6 +829,42 @@ p3 <- ggplot(plotdata[which(plotdata$city == 'Phoenix'),]) + geom_line(aes(x = D
 setwd(outputdir)
 pdf('archetypes_adacons_lineplots.pdf', width = 10, height = 15)
 plot_grid(p1, p2, p3, nrow = 1)
+dev.off()
+
+# FIGURE S15: Sensitivity Analysis of Starting Conditions
+
+# organize city observations:
+pltdata_d <- data.frame('Date' = denverobs$X, 'city' = rep('Denver', 144), 'repetition' = rep('observations', 144), 'value' = denverobs[,1], check.names = F)
+pltdata_lv <- data.frame('Date' = lasvegasobs$X, 'city' = rep('LasVegas', 144), 'repetition' = rep('observations', 144), 'value' = lasvegasobs[,1], check.names = F)
+pltdata_p <- data.frame('Date' = phoenixobs$X, 'city' = rep('Phoenix', 131), 'repetition' = rep('observations', 131), 'value' = phoenixobs[,1], check.names = F)
+
+# get averages over 5 model runs
+averages <- sensitivity %>% group_by(Date, city, `starting condition`) %>% summarize(mean(value))
+names(averages)[4] <- 'value'
+averages$repetition <- rep('average', 2556)
+averages <- averages[,c(1,2,3,5,4)]
+
+# merge everything
+plotdata <- rbind(averages, pltdata_d, pltdata_lv, pltdata_p, sensitivity)
+
+# create model run type column
+plotdata$runtype <- case_when(str_detect(plotdata$repetition, 'aver') ~ 'average', 
+                              str_detect(plotdata$repetition, 'obs') ~ 'observation', 
+                              .default = 'model run')
+
+reservoirlevels$city[2] <- 'LasVegas'
+
+setwd(outputdir)
+pdf('sensitivityanalysis_allcities.pdf', width = 10.5, height = 10)
+ggplot() + 
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile3/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = median/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_hline(data = reservoirlevels, aes(yintercept = quartile1/1000000000), linetype = 'dotted', linewidth = 0.5) +
+  geom_line(data = plotdata[which(plotdata$runtype == 'model run'),], aes(x = Date, y = value/1000000000, group = interaction(`starting condition`, repetition)), color = '#D3D3D3') +
+  geom_line(data = plotdata[which(plotdata$runtype == 'observation'),], aes(x = Date, y = value/1000000000), color = 'red', linetype = 'dashed') +
+  geom_line(data = plotdata[which(plotdata$runtype == 'average'),], aes(x = Date, y = value/1000000000, group = `starting condition`), color = 'black') +
+  xlab('Date') + ylab(expression(paste('Storage (billions of ', m^3, ')', sep = ''))) +
+  facet_wrap(~city, nrow = 3, scales = 'free') + theme_light(base_size = 16) 
 dev.off()
 
 ########## EXTRA CALCULATIONS ############
@@ -641,7 +876,7 @@ load('scenariodata.rdata')
 averages <- scenarios2 %>% group_by(Date, city, `model run`, model, scenario) %>% summarize(mean(value)); names(averages)[6] <- 'value'
 ensemble <- averages %>% group_by(Date, city, `model run`, scenario) %>% summarize(mean(value)); names(ensemble)[5] <- 'value'
 
-# comparing median (Denver RCP4.5; climate change only scenarios)
+# comparing median (Denver RCP4.5; climate change + adaptive water consumption scenarios)
 mediandiff <- median(ensemble$value[which(ensemble$scenario == 'part' & ensemble$`model run` == 'rcp4p5' & ensemble$city == 'Denver')]) - 
   median(ensemble$value[which(ensemble$scenario == 'base' & ensemble$`model run` == 'rcp4p5' & ensemble$city == 'Denver')])
 
@@ -776,9 +1011,9 @@ median(ensemble$value[which(ensemble$scenario == 'part' & ensemble$`model run` =
 # time-based relative change (baseline w/ adaptive water consumption)
 
 # RCP4.5 & RCP8.5 - Denver
-(median(ensemble$value[which(ensemble$scenario == 'base' & ensemble$`model run` == 'rcp4p5' & ensemble$city == 'Denver' & year(ensemble$Date) >= 2050 & year(ensemble$Date) < 2060)]) - 
-    median(ensemble$value[which(ensemble$scenario == 'base' & ensemble$`model run` == 'rcp8p5' & ensemble$city == 'Denver' & year(ensemble$Date) >= 2050 & year(ensemble$Date) < 2060)]))/
-  median(ensemble$value[which(ensemble$scenario == 'base' & ensemble$`model run` == 'rcp8p5' & ensemble$city == 'Denver' & year(ensemble$Date) >= 2050 & year(ensemble$Date) < 2060)])
+(median(ensemble$value[which(ensemble$scenario == 'base' & ensemble$`model run` == 'rcp4p5' & ensemble$city == 'Denver' & year(ensemble$Date) >= 2090 & year(ensemble$Date) < 2100)]) - 
+    median(ensemble$value[which(ensemble$scenario == 'base' & ensemble$`model run` == 'rcp8p5' & ensemble$city == 'Denver' & year(ensemble$Date) >= 2090 & year(ensemble$Date) < 2100)]))/
+  median(ensemble$value[which(ensemble$scenario == 'base' & ensemble$`model run` == 'rcp8p5' & ensemble$city == 'Denver' & year(ensemble$Date) >= 2090 & year(ensemble$Date) < 2100)])
 
 # RCP4.5 & RCP8.5 - Las Vegas
 (median(ensemble$value[which(ensemble$scenario == 'base' & ensemble$`model run` == 'rcp4p5' & ensemble$city == 'LasVegas' & year(ensemble$Date) >= 2050 & year(ensemble$Date) < 2060)]) - 
@@ -790,10 +1025,10 @@ median(ensemble$value[which(ensemble$scenario == 'part' & ensemble$`model run` =
     median(ensemble$value[which(ensemble$scenario == 'base' & ensemble$`model run` == 'rcp8p5' & ensemble$city == 'LasVegas' & year(ensemble$Date) >= 2050 & year(ensemble$Date) < 2060)]))/
   median(ensemble$value[which(ensemble$scenario == 'base' & ensemble$`model run` == 'rcp8p5' & ensemble$city == 'LasVegas' & year(ensemble$Date) >= 2050 & year(ensemble$Date) < 2060)])
 
-# RCP4.5 & RCP8.5 - Phoenix
-(median(ensemble$value[which(ensemble$scenario == 'base' & ensemble$`model run` == 'rcp4p5' & ensemble$city == 'Phoenix' & year(ensemble$Date) >= 2050 & year(ensemble$Date) < 2060)]) - 
-    median(ensemble$value[which(ensemble$scenario == 'base' & ensemble$`model run` == 'rcp8p5' & ensemble$city == 'Phoenix' & year(ensemble$Date) >= 2050 & year(ensemble$Date) < 2060)]))/
-  median(ensemble$value[which(ensemble$scenario == 'base' & ensemble$`model run` == 'rcp8p5' & ensemble$city == 'Phoenix' & year(ensemble$Date) >= 2050 & year(ensemble$Date) < 2060)])
+# RCP6.0 & RCP8.5 - Phoenix
+(median(ensemble$value[which(ensemble$scenario == 'base' & ensemble$`model run` == 'rcp6p0' & ensemble$city == 'Phoenix' & year(ensemble$Date) >= 2090 & year(ensemble$Date) < 2100)]) - 
+    median(ensemble$value[which(ensemble$scenario == 'base' & ensemble$`model run` == 'rcp8p5' & ensemble$city == 'Phoenix' & year(ensemble$Date) >= 2090 & year(ensemble$Date) < 2100)]))/
+  median(ensemble$value[which(ensemble$scenario == 'base' & ensemble$`model run` == 'rcp8p5' & ensemble$city == 'Phoenix' & year(ensemble$Date) >= 2090 & year(ensemble$Date) < 2100)])
 
 
 

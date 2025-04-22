@@ -32,7 +32,7 @@ library(readr)         # for writing csv files
 # NOTE: set this path to the folder on your personal machine which contains the cloned repository
 # for example: path <- '/Users/Obringer/Downloads/WaterConservation_ClimateChange_ABM'
 
-path <- '   '
+path <- '/Users/rqo5125/Library/Mobile Documents/com~apple~CloudDocs/Documents/Research/GitHub/public/WaterConservation_ClimateChange_ABM'
 
 # set directories
 maindir <- path                                                             # main directory
@@ -404,11 +404,29 @@ load('lasvegas_waterconsumptioncalc.rdata')
 S <- totalstorage$storage_m3; P <- totalprecip$total_m3; Qin <- totalinflow$totalinflow_m3 
 W <- totalwateruse$lakemeadwateruse_m3; E <- totalevap$evap_m3; Qout <- totaloutflow$outflow_m3
 
+par(mfrow = c(1, 2), mar = c(4, 4, 2, 1))
+fg <- fitdist(W, "gamma", method = 'mme')
+fln <- fitdist(W, "lnorm")
+fw <- fitdist(W, "weibull")
+plot.legend <- c("Weibull", "Lognormal", "Gamma")
+denscomp(list(fw, fln, fg), legendtext = plot.legend)
+qqcomp(list(fw, fln, fg), legendtext = plot.legend)
+
 # unaccounted for losses 
 L <- c()
+Loss_test <- c()
 for (i in 2:144) {
   L[i] <- S[i-1] - S[i] + P[i] + Qin[i] - W[i] - E[i] - Qout[i]
+  Loss_test[i] <- L[i-1] * rnorm(1, mean = 1, sd = 0.5)
 }
+
+nrmse(L, Loss_test)
+plot(L, Loss_test)
+
+ggplot() + geom_point(aes(x = L, y = Loss_test)) +
+  geom_abline(slope = 1, intercept = 0) + theme_light() +
+  ylab('Predicted Losses') + xlab('Actual Losses') +
+  ggtitle('Las Vegas')
 
 # check water balance
 Smod<- c(); Smod[1] <- S[1]

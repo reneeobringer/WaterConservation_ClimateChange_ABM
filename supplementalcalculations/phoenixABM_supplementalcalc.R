@@ -1,6 +1,6 @@
 # Code Purpose: Pre-Processing Work for the Water Consumption ABM in Phoenix (Monthly Values)
 # Code By: Renee Obringer
-# Code Run: 28 November 2023
+# Code Run: 11 March 2025
 
 # ORGANIZATION: 
 # This code is organized into sections, the start of each is denoted by multiple #
@@ -25,13 +25,14 @@ library(markovchain)   # for fitting distributions
 library(dplyr)         # for data processing
 library(ggplot2)       # for plotting
 library(readr)         # for writing csv files
-library(tidyverse)     
+library(tidyverse) 
+library(haven)
 
 # set file path
 # NOTE: set this path to the folder on your personal machine which contains the cloned repository
 # for example: path <- '/Users/Obringer/Downloads/WaterConservation_ClimateChange_ABM'
 
-path <- '   '
+path <- '/Users/rqo5125/Library/Mobile Documents/com~apple~CloudDocs/Documents/Research/GitHub/public/WaterConservation_ClimateChange_ABM'
 
 # set directories
 maindir <- path                                                             # main directory
@@ -249,7 +250,7 @@ save.image('processedhydrodata_monthly.RDATA')
 
 # OPTIONAL: load rdata file
 setwd(rdatadir)
-load('processedhydrodata_monthly.rdata')
+load('phoenix_processedhydrodata.rdata')
 
 # DESCRIPTION:
 # Calculating the water consumption for all the survey respondents using the 
@@ -368,7 +369,7 @@ mondata2017 <- mondata2017[,-c(1:2)]; names(mondata2017)[9] <- 'month'
 # merge survey income data with weather data for each month in 2017
 sdata <- list()
 for (i in 1:12) {
-  sdata[[i]] <- data.frame(mondata2017 %>% slice(i, each = length(surveyincome)),surveyincome/12)
+  sdata[[i]] <- data.frame(mondata2017[rep(i, length(surveyincome)),],surveyincome/12)
   sdata[[i]] <- sdata[[i]][,-c(1,7,9)]
   names(sdata[[i]])[c(7)] <- c('income')
 }
@@ -386,9 +387,9 @@ waterusePred <- lapply(waterusePred, function(x) {x[x < 0] <- 0; x})
 # get means by archetype by month
 avgwaterusePC <- list()
 for (i in 1:12) {
-  cdata <- data.frame(wateruse = waterusePred[[i]], node = model$unit.classif[which(surveydata$sample_group == 2)])
+  cdata <- data.frame(wateruse = waterusePred[[i]], node = model[[5]]$unit.classif[which(surveydata$sample_group == 2)])
   avgwateruse <- aggregate(cdata$wateruse, by = list(cdata$node), FUN = mean, na.rm=TRUE, na.action=NULL)
-  avgwateruse <- data.frame(avgwateruse, cluster = clusters)
+  avgwateruse <- data.frame(avgwateruse, cluster = clusters[[5]])
   avgwaterusePC[[i]] <- aggregate(avgwateruse$x, by = list(avgwateruse$cluster), FUN = mean)
 }
 
@@ -399,18 +400,38 @@ save.image('waterconsumptioncalc_monthly.rdata')
 
 # OPTIONAL: load rdata file
 setwd(rdatadir)
-load('processedhydrodata_monthly.rdata')
+load('phoenix_processedhydrodata.rdata')
 load('waterconsumptioncalc_monthly.rdata')
 
 # rename variables and remove/replace NA values
 S <- pull(monthlystorage[1:132,2]); P <- pull(monthlyprecip[1:132,2]); Q <- pull(monthlyflow[1:132,2]); 
 W <- pull(monthlyconsumption[1:132,2]); E <- pull(monthlyevap[,2])
 
+W <- W[-which(W == max(W))]
+
+par(mfrow = c(1, 2), mar = c(4, 4, 2, 1))
+fg <- fitdist(W, "gamma", method = 'mme')
+fln <- fitdist(W, "lnorm")
+fw <- fitdist(W, "weibull")
+plot.legend <- c("Weibull", "Lognormal", "Gamma")
+denscomp(list(fw, fln, fg), legendtext = plot.legend)
+qqcomp(list(fw, fln, fg), legendtext = plot.legend)
+
 # unaccounted for losses 
 L <- c()
+Loss_test <- c()
 for (i in 2:132) {
   L[i] <- S[i-1] - S[i] + P[i] + Q[i] - W[i] - E[i]
+  Loss_test[i] <- L[i-1] * rnorm(1, mean = 1, sd = 0.5)
 }
+
+nrmse(L, Loss_test)
+plot(L, Loss_test)
+
+ggplot() + geom_point(aes(x = L, y = Loss_test)) +
+  geom_abline(slope = 1, intercept = 0) + theme_light() +
+  ylab('Predicted Losses') + xlab('Actual Losses') +
+  ggtitle('Phoenix')
 
 # check water balance
 Smod<- c(); Smod[1] <- S[1]
@@ -434,15 +455,19 @@ write.csv(alldata,'PhoenixWaterBalData_original.csv')
 # get distributions by archetype by month
 distwaterusePC <- list()
 for (i in 1:12) {
-  cdata <- data.frame(wateruse = waterusePred[[i]], node = model$unit.classif[which(surveydata$sample_group == 2)], cluster = NA)
+  cdata <- data.frame(wateruse = waterusePred[[i]], node = model[[5]]$unit.classif[which(surveydata$sample_group == 2)], cluster = NA)
   for (j in 1:30) {
-    cdata[which(cdata$node == j), 3] <- clusters[j]
+    cdata[which(cdata$node == j), 3] <- clusters[[5]][j]
   }
   waterusedist <- list()
   for (k in 1:7) {
     waterusedist[[k]] <- cdata[which(cdata$cluster == k),]
   }
   distwaterusePC[[i]] <- waterusedist
+}
+
+for (i in 1:7) {
+  print(nrow(distwaterusePC[[12]][[i]]))
 }
 
 # fit gamma distributions
@@ -462,5 +487,29 @@ for (i in 1:3) {
 
 # save rdata file
 setwd(rdatadir)
-save.image('distributions.rdata')
+save.image('phoenix_distributions.rdata')
+
+# make plots
+setwd('/Users/rqo5125/Library/Mobile Documents/com~apple~CloudDocs/Documents/Research/2024_25/papers/anthrodrought-abm/indcities/Phoenix/monthlyanalysis')
+seasons <- list(c(12, 1, 2, 3), c(4, 5, 10, 11), c(6, 7, 8, 9))
+seasonnames <- c('winter', 'intermediate', 'summer')
+for (i in 1:3) {
+  for (j in 1:7) {
+    wdata <- c(na.omit(distwaterusePC[[seasons[[i]][1]]][[j]]$wateruse), 
+               na.omit(distwaterusePC[[seasons[[i]][2]]][[j]]$wateruse), 
+               na.omit(distwaterusePC[[seasons[[i]][3]]][[j]]$wateruse),
+               na.omit(distwaterusePC[[seasons[[i]][4]]][[j]]$wateruse))
+    
+    pdf(paste('phoenix_distributions_', seasonnames[i], '_', j, '.pdf', sep = ''), width = 6, height = 3)
+    par(mfrow = c(1, 2), mar = c(4, 4, 2, 1))
+    fg <- fitdist(wdata, "gamma")
+    fln <- fitdist(wdata, "lnorm")
+    fw <- fitdist(wdata, "weibull")
+    plot.legend <- c("Weibull", "Lognormal", "Gamma")
+    denscomp(list(fw, fln, fg), legendtext = plot.legend)
+    qqcomp(list(fw, fln, fg), legendtext = plot.legend)
+    dev.off()
+  }
+}
+
 

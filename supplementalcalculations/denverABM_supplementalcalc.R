@@ -1,6 +1,6 @@
 # Code Purpose: Pre-Processing Work for the Water Consumption ABM in Denver
 # Code By: Renee Obringer
-# Code Run: 27 September 2023
+# Code Run: 11 March 2025
  
 # ORGANIZATION: 
 # This code is organized into sections, the start of each is denoted by multiple #
@@ -27,13 +27,14 @@ library(markovchain)   # for fitting distributions
 library(dplyr)         # for data processing
 library(ggplot2)       # for plotting
 library(readr)         # for writing csv files
+library(haven)         # for working with survey data
 
 
 # set file path
 # NOTE: set this path to the folder on your personal machine which contains the cloned repository
 # for example: path <- '/Users/Obringer/Downloads/WaterConservation_ClimateChange_ABM'
 
-path <- '   '
+path <- '/Users/rqo5125/Library/Mobile Documents/com~apple~CloudDocs/Documents/Research/GitHub/public/WaterConservation_ClimateChange_ABM'
 
 # set directories
 maindir <- path                                                             # main directory
@@ -369,7 +370,7 @@ mondata2017 <- mondata2017[,-c(1:2)]; names(mondata2017)[9] <- 'month'
 # merge survey income data with weather data for each month in 2017
 sdata <- list()
 for (i in 1:12) {
-  sdata[[i]] <- data.frame(mondata2017 %>% slice(i, each = length(surveyincome)),surveyincome/12)
+  sdata[[i]] <- data.frame(mondata2017[rep(i, length(surveyincome)),],surveyincome/12)
   sdata[[i]] <- sdata[[i]][,-c(1,7,9)]
   names(sdata[[i]])[c(7)] <- c('income')
 }
@@ -407,11 +408,29 @@ load('denver_waterconsumptioncalc.rdata')
 S <- totalstorage$storage_m3; P <- totalprecip$total_m3; Qin <- totalinflow$inflow_m3 
 W <- totalwateruse$wateruse_m3; E <- totalevap$evap_m3; Qout <- totaloutflow$outflow_m3
 
+par(mfrow = c(1, 2), mar = c(4, 4, 2, 1))
+fg <- fitdist(W, "gamma", method = 'mme')
+fln <- fitdist(W, "lnorm")
+fw <- fitdist(W, "weibull")
+plot.legend <- c("Weibull", "Lognormal", "Gamma")
+denscomp(list(fw, fln, fg), legendtext = plot.legend)
+qqcomp(list(fw, fln, fg), legendtext = plot.legend)
+
 # unaccounted for losses 
 L <- c()
+Loss_test <- c()
 for (i in 2:144) {
   L[i] <- S[i-1] - S[i] + P[i] + Qin[i] - W[i] - E[i] - Qout[i]
+  Loss_test[i] <- L[i-1] * rnorm(1, mean = 1, sd = 0.5)
 }
+
+nrmse(L, Loss_test)
+plot(L, Loss_test)
+
+ggplot() + geom_point(aes(x = L, y = Loss_test)) +
+  geom_abline(slope = 1, intercept = 0) + theme_light() +
+  ylab('Predicted Losses') + xlab('Actual Losses') +
+  ggtitle('Denver')
 
 # check water balance
 Smod<- c(); Smod[1] <- S[1]

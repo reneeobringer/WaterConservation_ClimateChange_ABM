@@ -21,6 +21,9 @@ globals [
 
   ; for reading in different climate scenarios data
   climate-data-var-name
+
+  ; for calculating water consumtpion under different scenarios
+  water-use-modifier
 ]
 
 turtles-own [ archetype consumption ] ; each turtle is assigned an archetype + a water consumption value
@@ -132,16 +135,30 @@ to get-input-variables
     )
   ]
 
-  ; calculate total water consumption
+  ; get water consumption multipliers based on adaptive water consumption per city
   ( ifelse adaptive-water-use
-      [ (ifelse mod-storage > ( avg-obs-storage * 0.75 ) [ set water-use ( sum [ consumption ] of turtles ) ] ; business-as-usual
-                mod-storage < ( avg-obs-storage * 0.75 ) and mod-storage > ( avg-obs-storage * 0.5 ) [ set water-use ( sum [ consumption ] of turtles * 0.95 ) ] ; 5% reduction under "moderate drought"
-                mod-storage < ( avg-obs-storage * 0.5 ) and mod-storage > ( avg-obs-storage * 0.25 ) [ set water-use ( sum [ consumption ] of turtles * 0.90 ) ] ; 10% reduction under "severe drought"
-                mod-storage < ( avg-obs-storage * 0.25 ) [ set water-use ( sum [ consumption ] of turtles * 0.80 ) ] ; 20% reduction under "extreme drought"
-        )
-      ]
-      [ set water-use ( sum [ consumption ] of turtles ) ]
+      [ (ifelse mod-storage > ( avg-obs-storage * 0.75 ) [ ( ifelse city = "Denver" [ set water-use-modifier ( 1.0 + random-float 0.5 ) ]
+                                                                    city = "LasVegas" [ set water-use-modifier 1 ]
+                                                                    city = "Phoenix" [ set water-use-modifier ( 0.25 + random-float 0.75 ) ] ) ] ; business-as-usual
+                mod-storage < ( avg-obs-storage * 0.75 ) and mod-storage > ( avg-obs-storage * 0.5 ) [ ( ifelse city = "Denver" [ set water-use-modifier ( 1.0 + random-float 0.5 ) * 0.95 ]
+                                                                                                                city = "LasVegas" [ set water-use-modifier 0.95 ]
+                                                                                                                city = "Phoenix" [ set water-use-modifier ( 0.25 + random-float 0.75 ) * 0.95 ] ) ] ; 5% reduction under "moderate drought"
+                mod-storage < ( avg-obs-storage * 0.5 ) and mod-storage > ( avg-obs-storage * 0.25 ) [ ( ifelse city = "Denver" [ set water-use-modifier ( 1.0 + random-float 0.5 ) * 0.90 ]
+                                                                                                                city = "LasVegas" [ set water-use-modifier 0.90 ]
+                                                                                                                city = "Phoenix" [ set water-use-modifier ( 0.25 + random-float 0.75 ) * 0.90 ] ) ] ; 10% reduction under "severe drought"
+                mod-storage < ( avg-obs-storage * 0.25 ) [ ( ifelse city = "Denver" [ set water-use-modifier ( 1.0 + random-float 0.5 ) * 0.80 ]
+                                                                    city = "LasVegas" [ set water-use-modifier 0.80 ]
+                                                                    city = "Phoenix" [ set water-use-modifier ( 0.25 + random-float 0.75 ) * 0.80 ] ) ] ; 20% reduction under "extreme drought"
+    ) ]
+      [ (ifelse city = "Denver" [ set water-use-modifier ( 1.0 + random-float 0.5 ) ]
+                city = "LasVegas" [ set water-use-modifier 1 ]
+                city = "Phoenix" [ set water-use-modifier ( 0.25 + random-float 0.75 ) ]
+        ) ]
   )
+
+  ; calculate total water consumption
+  set water-use ( sum [ consumption ] of turtles ) * water-use-modifier
+
 end
 
 to use-water-winter
@@ -263,60 +280,60 @@ to use-water-winter
   ) ]
   city = "Phoenix" [
       (ifelse scenario = "base" [
-    (ifelse archetype = 1 [ set consumption random-gamma 1.74126929 0.06104617 ] ; shape and rate parameters calculated in R
-      archetype = 2 [ set consumption 0.95 * random-gamma 1.6865010 0.0524653 ]
-      archetype = 3 [ set consumption random-gamma 1.6702572 0.0539725 ]
-      archetype = 4 [ set consumption random-gamma 1.89908045 0.06480985 ]
-      archetype = 5 [ set consumption 0.75 * random-gamma 2.072876 0.077330 ]
-      archetype = 6 [ set consumption 1.25 * random-gamma 3.9255952 0.1257295 ]
-      archetype = 7 [ set consumption 1.15 * random-gamma 3.1818585 0.1003551 ]
+    (ifelse archetype = 1 [ set consumption random-gamma 1.97252230 0.05450873 ] ; shape and rate parameters calculated in R
+      archetype = 2 [ set consumption 0.95 * random-gamma 1.95846536 0.05642857 ]
+      archetype = 3 [ set consumption random-gamma 2.13941990 0.07901217 ]
+      archetype = 4 [ set consumption random-gamma 1.53039677 0.05415617 ]
+      archetype = 5 [ set consumption 0.75 * random-gamma 1.53451972 0.05458752 ]
+      archetype = 6 [ set consumption 1.25 * random-gamma 3.4073262 0.1239171 ]
+      archetype = 7 [ set consumption 1.15 * random-gamma 1.28500332 0.04507711 ]
     ) ]
     scenario = "partial-part" [ ; scenario in which some intervention is implemented and 50% of archetype 3 reduce consumption by 25% (become A5)
       let tmp_prob random-float 1
-    (ifelse archetype = 1 [ set consumption random-gamma 1.74126929 0.06104617 ] ; shape and rate parameters calculated in R
-      archetype = 2 [ set consumption 0.95 * random-gamma 1.6865010 0.0524653 ]
-      archetype = 3 and tmp_prob < 0.5 [ set consumption random-gamma 1.6702572 0.0539725 ]
-      archetype = 3 and tmp_prob >= 0.5 [ set consumption 0.75 * random-gamma 1.6702572 0.0539725 ]
-      archetype = 4 [ set consumption random-gamma 1.89908045 0.06480985 ]
-      archetype = 5 [ set consumption 0.75 * random-gamma 2.072876 0.077330 ]
-      archetype = 6 [ set consumption 1.25 * random-gamma 3.9255952 0.1257295 ]
-      archetype = 7 [ set consumption 1.15 * random-gamma 3.1818585 0.1003551 ]
+    (ifelse archetype = 1 [ set consumption random-gamma 1.97252230 0.05450873 ] ; shape and rate parameters calculated in R
+      archetype = 2 [ set consumption 0.95 * random-gamma 1.95846536 0.05642857 ]
+      archetype = 3 and tmp_prob < 0.5 [ set consumption random-gamma 2.13941990 0.07901217 ]
+      archetype = 3 and tmp_prob >= 0.5 [ set consumption 0.75 * random-gamma 2.13941990 0.07901217 ]
+      archetype = 4 [ set consumption random-gamma 1.53039677 0.05415617 ]
+      archetype = 5 [ set consumption 0.75 * random-gamma 1.53451972 0.05458752 ]
+      archetype = 6 [ set consumption 1.25 * random-gamma 3.4073262 0.1239171 ]
+      archetype = 7 [ set consumption 1.15 * random-gamma 1.28500332 0.04507711 ]
     ) ]
     scenario = "part" [ ; scenario in which some intervention is implemented and 100% of archetype 3 reduce consumption by 25% (become A5)
-    (ifelse archetype = 1 [ set consumption random-gamma 1.74126929 0.06104617 ] ; shape and rate parameters calculated in R
-      archetype = 2 [ set consumption 0.95 * random-gamma 1.6865010 0.0524653 ]
-      archetype = 3 [ set consumption 0.75 * random-gamma 1.6702572 0.0539725 ]
-      archetype = 4 [ set consumption random-gamma 1.89908045 0.06480985 ]
-      archetype = 5 [ set consumption 0.75 * random-gamma 2.072876 0.077330 ]
-      archetype = 6 [ set consumption 1.25 * random-gamma 3.9255952 0.1257295 ]
-      archetype = 7 [ set consumption 1.15 * random-gamma 3.1818585 0.1003551 ]
+    (ifelse archetype = 1 [ set consumption random-gamma 1.97252230 0.05450873 ] ; shape and rate parameters calculated in R
+      archetype = 2 [ set consumption 0.95 * random-gamma 1.95846536 0.05642857 ]
+      archetype = 3 [ set consumption 0.75 * random-gamma 2.13941990 0.07901217 ]
+      archetype = 4 [ set consumption random-gamma 1.53039677 0.05415617 ]
+      archetype = 5 [ set consumption 0.75 * random-gamma 1.53451972 0.05458752 ]
+      archetype = 6 [ set consumption 1.25 * random-gamma 3.4073262 0.1239171 ]
+      archetype = 7 [ set consumption 1.15 * random-gamma 1.28500332 0.04507711 ]
     ) ]
     scenario = "indiv" [ ; scenario in which some intervention is implemented and 100% of archetype 6 reduce consumption (become A2)
-    (ifelse archetype = 1 [ set consumption random-gamma 1.74126929 0.06104617 ] ; shape and rate parameters calculated in R
-      archetype = 2 [ set consumption 0.95 * random-gamma 1.6865010 0.0524653 ]
-      archetype = 3 [ set consumption random-gamma 1.6702572 0.0539725 ]
-      archetype = 4 [ set consumption random-gamma 1.89908045 0.06480985 ]
-      archetype = 5 [ set consumption 0.75 * random-gamma 2.072876 0.077330 ]
-      archetype = 6 [ set consumption 0.95 * random-gamma 3.9255952 0.1257295 ]
-      archetype = 7 [ set consumption 1.15 * random-gamma 3.1818585 0.1003551 ]
+    (ifelse archetype = 1 [ set consumption random-gamma 1.97252230 0.05450873 ] ; shape and rate parameters calculated in R
+      archetype = 2 [ set consumption 0.95 * random-gamma 1.95846536 0.05642857 ]
+      archetype = 3 [ set consumption random-gamma 2.13941990 0.07901217 ]
+      archetype = 4 [ set consumption random-gamma 1.53039677 0.05415617 ]
+      archetype = 5 [ set consumption 0.75 * random-gamma 1.53451972 0.05458752 ]
+      archetype = 6 [ set consumption 0.95 * random-gamma 3.4073262 0.1239171 ]
+      archetype = 7 [ set consumption 1.15 * random-gamma 1.28500332 0.04507711 ]
     ) ]
     scenario = "concern" [ ; scenario in which some intervention is implemented and 100% of archtype 7 reduce consumption (become A4)
-    (ifelse archetype = 1 [ set consumption random-gamma 1.74126929 0.06104617 ] ; shape and rate parameters calculated in R
-      archetype = 2 [ set consumption 0.95 * random-gamma 1.6865010 0.0524653 ]
-      archetype = 3 [ set consumption random-gamma 1.6702572 0.0539725 ]
-      archetype = 4 [ set consumption random-gamma 1.89908045 0.06480985 ]
-      archetype = 5 [ set consumption 0.75 * random-gamma 2.072876 0.077330 ]
-      archetype = 6 [ set consumption 1.25 * random-gamma 3.9255952 0.1257295 ]
-      archetype = 7 [ set consumption random-gamma 3.1818585 0.1003551 ]
+    (ifelse archetype = 1 [ set consumption random-gamma 1.97252230 0.05450873 ] ; shape and rate parameters calculated in R
+      archetype = 2 [ set consumption 0.95 * random-gamma 1.95846536 0.05642857 ]
+      archetype = 3 [ set consumption random-gamma 2.13941990 0.07901217 ]
+      archetype = 4 [ set consumption random-gamma 1.53039677 0.05415617 ]
+      archetype = 5 [ set consumption 0.75 * random-gamma 1.53451972 0.05458752 ]
+      archetype = 6 [ set consumption 1.25 * random-gamma 3.4073262 0.1239171 ]
+      archetype = 7 [ set consumption random-gamma 1.28500332 0.04507711 ]
     ) ]
     scenario = "all-changes" [ ; scenario in which all of the above interventions are applied
-    (ifelse archetype = 1 [ set consumption random-gamma 1.74126929 0.06104617 ] ; shape and rate parameters calculated in R
-      archetype = 2 [ set consumption 0.95 * random-gamma 1.6865010 0.0524653 ]
-      archetype = 3 [ set consumption 0.75 * random-gamma 1.6702572 0.0539725 ]
-      archetype = 4 [ set consumption random-gamma 1.89908045 0.06480985 ]
-      archetype = 5 [ set consumption 0.75 * random-gamma 2.072876 0.077330 ]
-      archetype = 6 [ set consumption 0.95 * random-gamma 3.9255952 0.1257295 ]
-      archetype = 7 [ set consumption random-gamma 3.1818585 0.1003551 ]
+    (ifelse archetype = 1 [ set consumption random-gamma 1.97252230 0.05450873 ] ; shape and rate parameters calculated in R
+      archetype = 2 [ set consumption 0.95 * random-gamma 1.95846536 0.05642857 ]
+      archetype = 3 [ set consumption 0.75 * random-gamma 2.13941990 0.07901217 ]
+      archetype = 4 [ set consumption random-gamma 1.53039677 0.05415617 ]
+      archetype = 5 [ set consumption 0.75 * random-gamma 1.53451972 0.05458752 ]
+      archetype = 6 [ set consumption 0.95 * random-gamma 3.4073262 0.1239171 ]
+      archetype = 7 [ set consumption random-gamma 1.28500332 0.04507711 ]
     ) ]
   ) ]
   )
@@ -441,60 +458,60 @@ to use-water-intermediate
   ) ]
     city = "Phoenix" [
       (ifelse scenario = "base" [
-    (ifelse archetype = 1 [ set consumption random-gamma 2.39503581 0.07172078 ] ; shape and rate parameters calculated in R
-      archetype = 2 [ set consumption 0.95 * random-gamma 2.24223424 0.07362998 ]
-      archetype = 3 [ set consumption random-gamma 2.24374124 0.06264542 ]
-      archetype = 4 [ set consumption random-gamma 2.59219994 0.07585649 ]
-      archetype = 5 [ set consumption 0.75 * random-gamma 2.90826487 0.09181385 ]
-      archetype = 6 [ set consumption 1.25 * random-gamma 5.2806056 0.1463071 ]
-      archetype = 7 [ set consumption 1.15 * random-gamma 4.2565000 0.1163738 ]
+    (ifelse archetype = 1 [ set consumption random-gamma 2.54546041 0.06199768 ] ; shape and rate parameters calculated in R
+      archetype = 2 [ set consumption 0.95 * random-gamma 2.55345918 0.06451867 ]
+      archetype = 3 [ set consumption random-gamma 2.99254242 0.09367159 ]
+      archetype = 4 [ set consumption random-gamma 2.1099716 0.0636895 ]
+      archetype = 5 [ set consumption 0.75 * random-gamma 2.11901563 0.06424908 ]
+      archetype = 6 [ set consumption 1.25 * random-gamma 4.7563408 0.1469508 ]
+      archetype = 7 [ set consumption 1.15 * random-gamma 1.76614623 0.05291529 ]
     ) ]
     scenario = "partial-part" [ ; scenario in which some intervention is implemented and 50% of archetype 3 reduce consumption by 25% (become A5)
       let tmp_prob random-float 1
-    (ifelse archetype = 1 [ set consumption random-gamma 2.39503581 0.07172078 ] ; shape and rate parameters calculated in R
-      archetype = 2 [ set consumption 0.95 * random-gamma 2.24223424 0.07362998 ]
-      archetype = 3 and tmp_prob < 0.5 [ set consumption random-gamma 2.24374124 0.06264542 ]
-      archetype = 3 and tmp_prob >= 0.5 [ set consumption 0.75 * random-gamma 2.24374124 0.06264542 ]
-      archetype = 4 [ set consumption random-gamma 2.59219994 0.07585649 ]
-      archetype = 5 [ set consumption 0.75 * random-gamma 2.90826487 0.09181385 ]
-      archetype = 6 [ set consumption 1.25 * random-gamma 5.2806056 0.1463071 ]
-      archetype = 7 [ set consumption 1.15 * random-gamma 4.2565000 0.1163738 ]
+    (ifelse archetype = 1 [ set consumption random-gamma 2.54546041 0.06199768 ] ; shape and rate parameters calculated in R
+      archetype = 2 [ set consumption 0.95 * random-gamma 2.55345918 0.06451867 ]
+      archetype = 3 and tmp_prob < 0.5 [ set consumption random-gamma 2.99254242 0.09367159 ]
+      archetype = 3 and tmp_prob >= 0.5 [ set consumption 0.75 * random-gamma 2.99254242 0.09367159 ]
+      archetype = 4 [ set consumption random-gamma 2.1099716 0.0636895 ]
+      archetype = 5 [ set consumption 0.75 * random-gamma 2.11901563 0.06424908 ]
+      archetype = 6 [ set consumption 1.25 * random-gamma 4.7563408 0.1469508 ]
+      archetype = 7 [ set consumption 1.15 * random-gamma 1.76614623 0.05291529 ]
     ) ]
     scenario = "part" [ ; scenario in which some intervention is implemented and 100% of archetype 3 reduce consumption by 25% (become A5)
-    (ifelse archetype = 1 [ set consumption random-gamma 2.39503581 0.07172078 ] ; shape and rate parameters calculated in R
-      archetype = 2 [ set consumption 0.95 * random-gamma 2.24223424 0.07362998 ]
-      archetype = 3 [ set consumption 0.75 * random-gamma 2.24374124 0.06264542 ]
-      archetype = 4 [ set consumption random-gamma 2.59219994 0.07585649 ]
-      archetype = 5 [ set consumption 0.75 * random-gamma 2.90826487 0.09181385 ]
-      archetype = 6 [ set consumption 1.25 * random-gamma 5.2806056 0.1463071 ]
-      archetype = 7 [ set consumption 1.15 * random-gamma 4.2565000 0.1163738 ]
+    (ifelse archetype = 1 [ set consumption random-gamma 2.54546041 0.06199768 ] ; shape and rate parameters calculated in R
+      archetype = 2 [ set consumption 0.95 * random-gamma 2.55345918 0.06451867 ]
+      archetype = 3 [ set consumption 0.75 * random-gamma 2.99254242 0.09367159 ]
+      archetype = 4 [ set consumption random-gamma 2.1099716 0.0636895 ]
+      archetype = 5 [ set consumption 0.75 * random-gamma 2.11901563 0.06424908 ]
+      archetype = 6 [ set consumption 1.25 * random-gamma 4.7563408 0.1469508 ]
+      archetype = 7 [ set consumption 1.15 * random-gamma 1.76614623 0.05291529 ]
     ) ]
     scenario = "indiv" [ ; scenario in which some intervention is implemented and 100% of archetype 6 reduce consumption (become A2)
-    (ifelse archetype = 1 [ set consumption random-gamma 2.39503581 0.07172078 ] ; shape and rate parameters calculated in R
-      archetype = 2 [ set consumption 0.95 * random-gamma 2.24223424 0.07362998 ]
-      archetype = 3 [ set consumption random-gamma 2.24374124 0.06264542 ]
-      archetype = 4 [ set consumption random-gamma 2.59219994 0.07585649 ]
-      archetype = 5 [ set consumption 0.75 * random-gamma 2.90826487 0.09181385 ]
-      archetype = 6 [ set consumption 0.95 * random-gamma 5.2806056 0.1463071 ]
-      archetype = 7 [ set consumption 1.15 * random-gamma 4.2565000 0.1163738 ]
+    (ifelse archetype = 1 [ set consumption random-gamma 2.54546041 0.06199768 ] ; shape and rate parameters calculated in R
+      archetype = 2 [ set consumption 0.95 * random-gamma 2.55345918 0.06451867 ]
+      archetype = 3 [ set consumption random-gamma 2.99254242 0.09367159 ]
+      archetype = 4 [ set consumption random-gamma 2.1099716 0.0636895 ]
+      archetype = 5 [ set consumption 0.75 * random-gamma 2.11901563 0.06424908 ]
+      archetype = 6 [ set consumption 0.95 * random-gamma 4.7563408 0.1469508 ]
+      archetype = 7 [ set consumption 1.15 * random-gamma 1.76614623 0.05291529 ]
     ) ]
     scenario = "concern" [ ; scenario in which some intervention is implemented and 100% of archtype 7 reduce consumption (become A4)
-    (ifelse archetype = 1 [ set consumption random-gamma 2.39503581 0.07172078 ] ; shape and rate parameters calculated in R
-      archetype = 2 [ set consumption 0.95 * random-gamma 2.24223424 0.07362998 ]
-      archetype = 3 [ set consumption random-gamma 2.24374124 0.06264542 ]
-      archetype = 4 [ set consumption random-gamma 2.59219994 0.07585649 ]
-      archetype = 5 [ set consumption 0.75 * random-gamma 2.90826487 0.09181385 ]
-      archetype = 6 [ set consumption 1.25 * random-gamma 5.2806056 0.1463071 ]
-      archetype = 7 [ set consumption random-gamma 4.2565000 0.1163738 ]
+    (ifelse archetype = 1 [ set consumption random-gamma 2.54546041 0.06199768 ] ; shape and rate parameters calculated in R
+      archetype = 2 [ set consumption 0.95 * random-gamma 2.55345918 0.06451867 ]
+      archetype = 3 [ set consumption random-gamma 2.99254242 0.09367159 ]
+      archetype = 4 [ set consumption random-gamma 2.1099716 0.0636895 ]
+      archetype = 5 [ set consumption 0.75 * random-gamma 2.11901563 0.06424908 ]
+      archetype = 6 [ set consumption 1.25 * random-gamma 4.7563408 0.1469508 ]
+      archetype = 7 [ set consumption random-gamma 1.76614623 0.05291529 ]
     ) ]
     scenario = "all-changes" [ ; scenario in which all of the above interventions are applied
-    (ifelse archetype = 1 [ set consumption random-gamma 2.39503581 0.07172078 ] ; shape and rate parameters calculated in R
-      archetype = 2 [ set consumption 0.95 * random-gamma 2.24223424 0.07362998 ]
-      archetype = 3 [ set consumption 0.75 * random-gamma 2.24374124 0.06264542 ]
-      archetype = 4 [ set consumption random-gamma 2.59219994 0.07585649 ]
-      archetype = 5 [ set consumption 0.75 * random-gamma 2.90826487 0.09181385 ]
-      archetype = 6 [ set consumption 0.95 * random-gamma 5.2806056 0.1463071 ]
-      archetype = 7 [ set consumption random-gamma 4.2565000 0.1163738 ]
+    (ifelse archetype = 1 [ set consumption random-gamma 2.54546041 0.06199768 ] ; shape and rate parameters calculated in R
+      archetype = 2 [ set consumption 0.95 * random-gamma 2.55345918 0.06451867 ]
+      archetype = 3 [ set consumption 0.75 * random-gamma 2.99254242 0.09367159 ]
+      archetype = 4 [ set consumption random-gamma 2.1099716 0.0636895 ]
+      archetype = 5 [ set consumption 0.75 * random-gamma 2.11901563 0.06424908 ]
+      archetype = 6 [ set consumption 0.95 * random-gamma 4.7563408 0.1469508 ]
+      archetype = 7 [ set consumption random-gamma 1.76614623 0.05291529 ]
     ) ]
   ) ]
   )
@@ -619,60 +636,60 @@ to use-water-summer
   ) ]
     city = "Phoenix" [
     (ifelse scenario = "base" [
-    (ifelse archetype = 1 [ set consumption random-gamma 2.92022051 0.07926605 ] ; shape and rate parameters calculated in R
-      archetype = 2 [ set consumption 0.95 * random-gamma 2.68294411 0.06630772 ]
-      archetype = 3 [ set consumption random-gamma 2.70033134 0.06877479 ]
-      archetype = 4 [ set consumption random-gamma 3.14734926 0.08366319 ]
-      archetype = 5 [ set consumption 0.75 * random-gamma 3.5843295 0.1020521 ]
-      archetype = 6 [ set consumption 1.25 * random-gamma 6.3589228 0.1608246 ]
-      archetype = 7 [ set consumption 1.15 * random-gamma 5.1101465 0.1276804 ]
+    (ifelse archetype = 1 [ set consumption random-gamma 2.9945770 0.0672875 ] ; shape and rate parameters calculated in R
+      archetype = 2 [ set consumption 0.95 * random-gamma 3.0217205 0.0702335 ]
+      archetype = 3 [ set consumption random-gamma 3.6821523 0.1040331 ]
+      archetype = 4 [ set consumption random-gamma 2.57601122 0.07042921 ]
+      archetype = 5 [ set consumption 0.75 * random-gamma 2.58929347 0.07107952 ]
+      archetype = 6 [ set consumption 1.25 * random-gamma 5.8455132 0.1632198 ]
+      archetype = 7 [ set consumption 1.15 * random-gamma 2.15261921 0.05845741 ]
     ) ]
     scenario = "partial-part" [ ; scenario in which some intervention is implemented and 50% of archetype 3 reduce consumption by 25% (become A5)
       let tmp_prob random-float 1
-    (ifelse archetype = 1 [ set consumption random-gamma 2.92022051 0.07926605 ] ; shape and rate parameters calculated in R
-      archetype = 2 [ set consumption 0.95 * random-gamma 2.68294411 0.06630772 ]
-      archetype = 3 and tmp_prob < 0.5 [ set consumption random-gamma 2.70033134 0.06877479 ]
-      archetype = 3 and tmp_prob >= 0.5 [ set consumption 0.75 * random-gamma 2.70033134 0.06877479 ]
-      archetype = 4 [ set consumption random-gamma 3.14734926 0.08366319 ]
-      archetype = 5 [ set consumption 0.75 * random-gamma 3.5843295 0.1020521 ]
-      archetype = 6 [ set consumption 1.25 * random-gamma 6.3589228 0.1608246 ]
-      archetype = 7 [ set consumption 1.15 * random-gamma 5.1101465 0.1276804 ]
+    (ifelse archetype = 1 [ set consumption random-gamma 2.9945770 0.0672875 ] ; shape and rate parameters calculated in R
+      archetype = 2 [ set consumption 0.95 * random-gamma 3.0217205 0.0702335 ]
+      archetype = 3 and tmp_prob < 0.5 [ set consumption random-gamma 3.6821523 0.1040331 ]
+      archetype = 3 and tmp_prob >= 0.5 [ set consumption 0.75 * random-gamma 3.6821523 0.1040331 ]
+      archetype = 4 [ set consumption random-gamma 2.57601122 0.07042921 ]
+      archetype = 5 [ set consumption 0.75 * random-gamma 2.58929347 0.07107952 ]
+      archetype = 6 [ set consumption 1.25 * random-gamma 5.8455132 0.1632198 ]
+      archetype = 7 [ set consumption 1.15 * random-gamma 2.15261921 0.05845741 ]
     ) ]
     scenario = "part" [ ; scenario in which some intervention is implemented and 100% of archetype 3 reduce consumption by 25% (become A5)
-    (ifelse archetype = 1 [ set consumption random-gamma 2.92022051 0.07926605 ] ; shape and rate parameters calculated in R
-      archetype = 2 [ set consumption 0.95 * random-gamma 2.68294411 0.06630772 ]
-      archetype = 3 [ set consumption 0.75 * random-gamma 2.70033134 0.06877479 ]
-      archetype = 4 [ set consumption random-gamma 3.14734926 0.08366319 ]
-      archetype = 5 [ set consumption 0.75 * random-gamma 3.5843295 0.1020521 ]
-      archetype = 6 [ set consumption 1.25 * random-gamma 6.3589228 0.1608246 ]
-      archetype = 7 [ set consumption 1.15 * random-gamma 5.1101465 0.1276804 ]
+    (ifelse archetype = 1 [ set consumption random-gamma 2.9945770 0.0672875 ] ; shape and rate parameters calculated in R
+      archetype = 2 [ set consumption 0.95 * random-gamma 3.0217205 0.0702335 ]
+      archetype = 3 [ set consumption 0.75 * random-gamma 3.6821523 0.1040331 ]
+      archetype = 4 [ set consumption random-gamma 2.57601122 0.07042921 ]
+      archetype = 5 [ set consumption 0.75 * random-gamma 2.58929347 0.07107952 ]
+      archetype = 6 [ set consumption 1.25 * random-gamma 5.8455132 0.1632198 ]
+      archetype = 7 [ set consumption 1.15 * random-gamma 2.15261921 0.05845741 ]
     ) ]
     scenario = "indiv" [ ; scenario in which some intervention is implemented and 100% of archetype 6 reduce consumption (become A2)
-    (ifelse archetype = 1 [ set consumption random-gamma 2.92022051 0.07926605 ] ; shape and rate parameters calculated in R
-      archetype = 2 [ set consumption 0.95 * random-gamma 2.68294411 0.06630772 ]
-      archetype = 3 [ set consumption random-gamma 2.70033134 0.06877479 ]
-      archetype = 4 [ set consumption random-gamma 3.14734926 0.08366319 ]
-      archetype = 5 [ set consumption 0.75 * random-gamma 3.5843295 0.1020521 ]
-      archetype = 6 [ set consumption 0.95 * random-gamma 6.3589228 0.1608246 ]
-      archetype = 7 [ set consumption 1.15 * random-gamma 5.1101465 0.1276804 ]
+    (ifelse archetype = 1 [ set consumption random-gamma 2.9945770 0.0672875 ] ; shape and rate parameters calculated in R
+      archetype = 2 [ set consumption 0.95 * random-gamma 3.0217205 0.0702335 ]
+      archetype = 3 [ set consumption random-gamma 3.6821523 0.1040331 ]
+      archetype = 4 [ set consumption random-gamma 2.57601122 0.07042921 ]
+      archetype = 5 [ set consumption 0.75 * random-gamma 2.58929347 0.07107952 ]
+      archetype = 6 [ set consumption 0.95 * random-gamma 5.8455132 0.1632198 ]
+      archetype = 7 [ set consumption 1.15 * random-gamma 2.15261921 0.05845741 ]
     ) ]
     scenario = "concern" [ ; scenario in which some intervention is implemented and 100% of archtype 7 reduce consumption (become A4)
-    (ifelse archetype = 1 [ set consumption random-gamma 2.92022051 0.07926605 ] ; shape and rate parameters calculated in R
-      archetype = 2 [ set consumption 0.95 * random-gamma 2.68294411 0.06630772 ]
-      archetype = 3 [ set consumption random-gamma 2.70033134 0.06877479 ]
-      archetype = 4 [ set consumption random-gamma 3.14734926 0.08366319 ]
-      archetype = 5 [ set consumption 0.75 * random-gamma 3.5843295 0.1020521 ]
-      archetype = 6 [ set consumption 1.25 * random-gamma 6.3589228 0.1608246 ]
-      archetype = 7 [ set consumption random-gamma 5.1101465 0.1276804 ]
+    (ifelse archetype = 1 [ set consumption random-gamma 2.9945770 0.0672875 ] ; shape and rate parameters calculated in R
+      archetype = 2 [ set consumption 0.95 * random-gamma 3.0217205 0.0702335 ]
+      archetype = 3 [ set consumption random-gamma 3.6821523 0.1040331 ]
+      archetype = 4 [ set consumption random-gamma 2.57601122 0.07042921 ]
+      archetype = 5 [ set consumption 0.75 * random-gamma 2.58929347 0.07107952 ]
+      archetype = 6 [ set consumption 1.25 * random-gamma 5.8455132 0.1632198 ]
+      archetype = 7 [ set consumption random-gamma 2.15261921 0.05845741 ]
     ) ]
     scenario = "all-changes" [ ; scenario in which all of the above interventions are applied
-    (ifelse archetype = 1 [ set consumption random-gamma 2.92022051 0.07926605 ] ; shape and rate parameters calculated in R
-      archetype = 2 [ set consumption 0.95 * random-gamma 2.68294411 0.06630772 ]
-      archetype = 3 [ set consumption 0.75 * random-gamma 2.70033134 0.06877479 ]
-      archetype = 4 [ set consumption random-gamma 3.14734926 0.08366319 ]
-      archetype = 5 [ set consumption 0.75 * random-gamma 3.5843295 0.1020521 ]
-      archetype = 6 [ set consumption 0.95 * random-gamma 6.3589228 0.1608246 ]
-      archetype = 7 [ set consumption random-gamma 5.1101465 0.1276804 ]
+    (ifelse archetype = 1 [ set consumption random-gamma 2.9945770 0.0672875 ] ; shape and rate parameters calculated in R
+      archetype = 2 [ set consumption 0.95 * random-gamma 3.0217205 0.0702335 ]
+      archetype = 3 [ set consumption 0.75 * random-gamma 3.6821523 0.1040331 ]
+      archetype = 4 [ set consumption random-gamma 2.57601122 0.07042921 ]
+      archetype = 5 [ set consumption 0.75 * random-gamma 2.58929347 0.07107952 ]
+      archetype = 6 [ set consumption 0.95 * random-gamma 5.8455132 0.1632198 ]
+      archetype = 7 [ set consumption random-gamma 2.15261921 0.05845741 ]
     ) ]
   ) ]
     )
@@ -1337,7 +1354,6 @@ NetLogo 6.2.2
     <enumeratedValueSet variable="city">
       <value value="&quot;Phoenix&quot;"/>
       <value value="&quot;Denver&quot;"/>
-      <value value="&quot;LasVegas&quot;"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="climate-model">
       <value value="&quot;gfdl&quot;"/>
